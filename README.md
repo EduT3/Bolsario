@@ -8,7 +8,8 @@ Aplicativo local para gerenciamento financeiro pessoal, feito para abrir direto 
 2. Cadastre gastos e entradas no formulário.
 3. Use o filtro de mês para analisar períodos diferentes.
 4. Defina limites em "Orçamento por categoria".
-5. Use o botão de exportação para baixar CSV e backup JSON.
-6. Use o botão de PDF para gerar um relatório do mês e salvar em "Imprimir > Salvar como PDF".
+5. Ajuste nome, objetivo, renda, tema e categorias na aba "Perfil".
+6. Use o botão de exportação para baixar CSV e backup JSON.
+7. Use o botão de PDF para gerar um relatório do mês e salvar em "Imprimir > Salvar como PDF".
 
 Os dados ficam salvos no `localStorage` do navegador. Para levar para outro computador ou navegador, exporte o backup JSON e importe no novo ambiente.

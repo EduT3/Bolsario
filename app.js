@@ -1,7 +1,8 @@
 const STORAGE_KEY = "pierre-finance-v1";
-const APP_NAME = "Bolsário";
+const DEFAULT_APP_NAME = "Bolsário";
+const VIEWS = ["resumo", "lancamentos", "orcamento", "perfil"];
 
-const categories = {
+const defaultCategories = {
   expense: [
     "Moradia",
     "Mercado",
@@ -18,9 +19,30 @@ const categories = {
 
 const palette = ["#0f766e", "#2563eb", "#b45309", "#dc2626", "#6d28d9", "#0891b2", "#15803d", "#be185d", "#475569"];
 
+const accentMap = {
+  "#0f766e": "#115e59",
+  "#2563eb": "#1d4ed8",
+  "#6d28d9": "#5b21b6",
+  "#be185d": "#9d174d",
+  "#b45309": "#92400e",
+};
+
+const goalHeadlines = {
+  "Controlar gastos": "Organize o mês antes que ele organize você.",
+  "Guardar dinheiro": "Dê destino ao dinheiro antes que ele desapareça.",
+  "Quitar dívidas": "Veja o caminho da saída com números na mesa.",
+  "Organizar renda variável": "Transforme renda irregular em um plano claro.",
+  "Planejar uma compra": "Acompanhe o presente sem perder a compra do radar.",
+};
+
 const elements = {
   navItems: document.querySelectorAll(".nav-item"),
   views: document.querySelectorAll(".view"),
+  brandMark: document.querySelector("#brandMark"),
+  appNameLabel: document.querySelector("#appNameLabel"),
+  brandTitle: document.querySelector("#brandTitle"),
+  topbarEyebrow: document.querySelector("#topbarEyebrow"),
+  topbarTitle: document.querySelector("#topbarTitle"),
   monthFilter: document.querySelector("#monthFilter"),
   exportBtn: document.querySelector("#exportBtn"),
   pdfBtn: document.querySelector("#pdfBtn"),
@@ -61,6 +83,21 @@ const elements = {
   budgetAmount: document.querySelector("#budgetAmount"),
   budgetList: document.querySelector("#budgetList"),
   budgetSummary: document.querySelector("#budgetSummary"),
+  profileForm: document.querySelector("#profileForm"),
+  personName: document.querySelector("#personName"),
+  customAppName: document.querySelector("#customAppName"),
+  profileGoal: document.querySelector("#profileGoal"),
+  monthlyIncome: document.querySelector("#monthlyIncome"),
+  themeMode: document.querySelector("#themeMode"),
+  expenseCategories: document.querySelector("#expenseCategories"),
+  incomeCategories: document.querySelector("#incomeCategories"),
+  resetPersonBtn: document.querySelector("#resetPersonBtn"),
+  previewMark: document.querySelector("#previewMark"),
+  previewAppName: document.querySelector("#previewAppName"),
+  previewPersonName: document.querySelector("#previewPersonName"),
+  previewGoal: document.querySelector("#previewGoal"),
+  previewIncome: document.querySelector("#previewIncome"),
+  previewCategories: document.querySelector("#previewCategories"),
   toast: document.querySelector("#toast"),
 };
 
@@ -99,69 +136,103 @@ function uid() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function seedState() {
-  const month = getCurrentMonth();
+function uniqueList(items, fallback = []) {
+  const list = items.map((item) => String(item).trim()).filter(Boolean);
+  const unique = [...new Set(list)];
+  return unique.length ? unique : fallback.slice();
+}
+
+function createDefaultProfile() {
   return {
-    transactions: [
-      {
-        id: uid(),
-        type: "income",
-        description: "Salário",
-        amount: 5200,
-        category: "Salário",
-        account: "Conta corrente",
-        date: `${month}-05`,
-        notes: "Entrada principal",
-      },
-      {
-        id: uid(),
-        type: "expense",
-        description: "Aluguel",
-        amount: 1450,
-        category: "Moradia",
-        account: "Pix",
-        date: `${month}-06`,
-        notes: "",
-      },
-      {
-        id: uid(),
-        type: "expense",
-        description: "Compras do mês",
-        amount: 730.4,
-        category: "Mercado",
-        account: "Cartão de crédito",
-        date: `${month}-08`,
-        notes: "",
-      },
-      {
-        id: uid(),
-        type: "expense",
-        description: "Combustível",
-        amount: 260,
-        category: "Transporte",
-        account: "Cartão de crédito",
-        date: `${month}-11`,
-        notes: "",
-      },
-      {
-        id: uid(),
-        type: "expense",
-        description: "Cinema e jantar",
-        amount: 190,
-        category: "Lazer",
-        account: "Carteira",
-        date: `${month}-18`,
-        notes: "",
-      },
-    ],
-    budgets: {
-      Moradia: 1600,
-      Mercado: 900,
-      Transporte: 420,
-      Lazer: 350,
-      Assinaturas: 180,
+    personName: "",
+    appName: DEFAULT_APP_NAME,
+    goal: "Controlar gastos",
+    monthlyIncome: "",
+    theme: "light",
+    accent: "#0f766e",
+    categories: {
+      expense: defaultCategories.expense.slice(),
+      income: defaultCategories.income.slice(),
     },
   };
+}
+
+function normalizeProfile(profile = {}) {
+  const defaults = createDefaultProfile();
+  const categories = profile.categories && typeof profile.categories === "object" ? profile.categories : {};
+  return {
+    ...defaults,
+    ...profile,
+    personName: String(profile.personName || "").trim(),
+    appName: String(profile.appName || defaults.appName).trim() || defaults.appName,
+    goal: goalHeadlines[profile.goal] ? profile.goal : defaults.goal,
+    monthlyIncome: Number(profile.monthlyIncome) > 0 ? Number(profile.monthlyIncome) : "",
+    theme: profile.theme === "dark" ? "dark" : "light",
+    accent: accentMap[profile.accent] ? profile.accent : defaults.accent,
+    categories: {
+      expense: uniqueList(Array.isArray(categories.expense) ? categories.expense : [], defaults.categories.expense),
+      income: uniqueList(Array.isArray(categories.income) ? categories.income : [], defaults.categories.income),
+    },
+  };
+}
+
+function getProfile() {
+  state.profile = normalizeProfile(state.profile);
+  return state.profile;
+}
+
+function getAppName() {
+  return getProfile().appName || DEFAULT_APP_NAME;
+}
+
+function getCategories(type) {
+  return getProfile().categories[type] || defaultCategories[type];
+}
+
+function slug(value) {
+  return String(value || DEFAULT_APP_NAME)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+function seedState() {
+  return {
+    profile: createDefaultProfile(),
+    transactions: [],
+    budgets: {},
+  };
+}
+
+function isLegacyDemoState(value) {
+  if (!Array.isArray(value.transactions) || value.transactions.length !== 5) return false;
+
+  const demoTransactions = [
+    ["Salário", 5200],
+    ["Aluguel", 1450],
+    ["Compras do mês", 730.4],
+    ["Combustível", 260],
+    ["Cinema e jantar", 190],
+  ];
+  const hasDemoTransactions = demoTransactions.every(([description, amount]) =>
+    value.transactions.some((transaction) => transaction.description === description && Number(transaction.amount) === amount)
+  );
+  const budgets = value.budgets || {};
+  const demoBudgets = {
+    Moradia: 1600,
+    Mercado: 900,
+    Transporte: 420,
+    Lazer: 350,
+    Assinaturas: 180,
+  };
+  const budgetKeys = Object.keys(budgets);
+  const hasOnlyDemoBudgets =
+    budgetKeys.length === Object.keys(demoBudgets).length &&
+    budgetKeys.every((key) => Number(budgets[key]) === demoBudgets[key]);
+
+  return hasDemoTransactions && hasOnlyDemoBudgets;
 }
 
 function loadState() {
@@ -169,7 +240,13 @@ function loadState() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return seedState();
     const parsed = JSON.parse(raw);
+    if (isLegacyDemoState(parsed)) {
+      const emptyState = seedState();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(emptyState));
+      return emptyState;
+    }
     return {
+      profile: normalizeProfile(parsed.profile),
       transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
       budgets: parsed.budgets && typeof parsed.budgets === "object" ? parsed.budgets : {},
     };
@@ -179,6 +256,7 @@ function loadState() {
 }
 
 function saveState() {
+  state.profile = normalizeProfile(state.profile);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
@@ -188,11 +266,11 @@ function selectedType() {
 
 function getViewFromHash() {
   const view = window.location.hash.replace("#", "");
-  return ["resumo", "lancamentos", "orcamento"].includes(view) ? view : "resumo";
+  return VIEWS.includes(view) ? view : "resumo";
 }
 
 function setActiveView(viewName) {
-  const activeView = ["resumo", "lancamentos", "orcamento"].includes(viewName) ? viewName : "resumo";
+  const activeView = VIEWS.includes(viewName) ? viewName : "resumo";
 
   elements.views.forEach((view) => {
     const isActive = view.dataset.view === activeView;
@@ -215,10 +293,17 @@ function setActiveView(viewName) {
   }
 }
 
+function renderOptions(items, selected = "") {
+  const options = uniqueList([...items, selected].filter(Boolean));
+  return options
+    .map((item) => `<option value="${escapeHtml(item)}"${item === selected ? " selected" : ""}>${escapeHtml(item)}</option>`)
+    .join("");
+}
+
 function populateCategorySelects() {
   const type = selectedType();
-  elements.category.innerHTML = categories[type].map((category) => `<option value="${category}">${category}</option>`).join("");
-  elements.budgetCategory.innerHTML = categories.expense.map((category) => `<option value="${category}">${category}</option>`).join("");
+  elements.category.innerHTML = renderOptions(getCategories(type), elements.category.value);
+  elements.budgetCategory.innerHTML = renderOptions([...getCategories("expense"), ...Object.keys(state.budgets)], elements.budgetCategory.value);
 }
 
 function getMonthTransactions() {
@@ -272,12 +357,14 @@ function updateMetrics(summary) {
 }
 
 function updateInsight(summary) {
+  const profile = getProfile();
   const budgetTotal = Object.values(state.budgets).reduce((sum, value) => sum + Number(value || 0), 0);
   const budgetUsed = summary.expense;
   const budgetRatio = budgetTotal > 0 ? Math.round((budgetUsed / budgetTotal) * 100) : 0;
+  const monthlyIncome = Number(profile.monthlyIncome || 0);
 
-  let title = `${APP_NAME} está acompanhando o seu mês`;
-  let message = "Cadastre seus lançamentos e revise os limites para enxergar o dinheiro sem adivinhação.";
+  let title = `${getAppName()} está acompanhando ${profile.personName ? profile.personName : "o seu mês"}`;
+  let message = `Objetivo atual: ${profile.goal.toLowerCase()}. Cadastre lançamentos e revise os limites para enxergar o dinheiro sem adivinhação.`;
   let color = "var(--primary)";
 
   if (summary.income > 0 && summary.savingRate >= 20) {
@@ -292,6 +379,10 @@ function updateInsight(summary) {
     title = "Orçamento quase no limite";
     message = `Você já usou ${budgetRatio}% dos limites cadastrados para este mês.`;
     color = "var(--warning)";
+  } else if (monthlyIncome > 0 && summary.expense > monthlyIncome * 0.7) {
+    title = "Gastos altos para a renda base";
+    message = `Os gastos já somam ${Math.round((summary.expense / monthlyIncome) * 100)}% da renda mensal informada.`;
+    color = "var(--warning)";
   } else if (summary.expense > 0) {
     title = "Controle ativo";
     message = `Foram registrados ${currency(summary.expense)} em gastos no mês selecionado.`;
@@ -305,6 +396,120 @@ function updateInsight(summary) {
     </div>
     <span class="pill">${budgetTotal > 0 ? `${budgetRatio}% do orçamento` : "Sem limites"}</span>
   `;
+}
+
+function applyTheme(profile) {
+  document.documentElement.dataset.theme = profile.theme;
+  document.documentElement.style.setProperty("--primary", profile.accent);
+  document.documentElement.style.setProperty("--primary-dark", accentMap[profile.accent] || profile.accent);
+}
+
+function updateBranding() {
+  const profile = getProfile();
+  const appName = getAppName();
+  const firstLetter = appName.charAt(0).toUpperCase() || "B";
+
+  document.title = `${appName} | Controle Pessoal`;
+  elements.brandMark.textContent = firstLetter;
+  elements.appNameLabel.textContent = appName;
+  elements.brandTitle.textContent = profile.personName ? `Controle de ${profile.personName}` : "Controle pessoal";
+  elements.topbarEyebrow.textContent = profile.personName ? `Painel financeiro de ${profile.personName}` : "Painel financeiro pessoal";
+  elements.topbarTitle.textContent = goalHeadlines[profile.goal] || goalHeadlines["Controlar gastos"];
+  applyTheme(profile);
+  updateProfilePreview(profile);
+}
+
+function updateProfilePreview(profile = getProfile()) {
+  const appName = profile.appName || DEFAULT_APP_NAME;
+  elements.previewMark.textContent = appName.charAt(0).toUpperCase() || "B";
+  elements.previewAppName.textContent = appName;
+  elements.previewPersonName.textContent = profile.personName ? `Controle de ${profile.personName}` : "Controle pessoal";
+  elements.previewGoal.textContent = profile.goal;
+  elements.previewIncome.textContent = Number(profile.monthlyIncome) > 0 ? currency(Number(profile.monthlyIncome)) : "Não definida";
+  elements.previewCategories.textContent = `${profile.categories.expense.length} gastos • ${profile.categories.income.length} entradas`;
+}
+
+function fillProfileForm() {
+  const profile = getProfile();
+  elements.personName.value = profile.personName;
+  elements.customAppName.value = profile.appName;
+  elements.profileGoal.value = profile.goal;
+  elements.monthlyIncome.value = profile.monthlyIncome || "";
+  elements.themeMode.value = profile.theme;
+  elements.expenseCategories.value = profile.categories.expense.join("\n");
+  elements.incomeCategories.value = profile.categories.income.join("\n");
+
+  const accentInput = document.querySelector(`input[name="accentColor"][value="${profile.accent}"]`);
+  if (accentInput) accentInput.checked = true;
+  updateProfilePreview(profile);
+}
+
+function parseCategoryField(value, fallback) {
+  return uniqueList(String(value || "").split(/[\n,;]+/), fallback);
+}
+
+function handleProfileSubmit(event) {
+  event.preventDefault();
+  const formData = new FormData(elements.profileForm);
+  const currentProfile = getProfile();
+
+  state.profile = normalizeProfile({
+    ...currentProfile,
+    personName: formData.get("personName"),
+    appName: formData.get("customAppName"),
+    goal: formData.get("profileGoal"),
+    monthlyIncome: formData.get("monthlyIncome"),
+    theme: formData.get("themeMode"),
+    accent: formData.get("accentColor") || currentProfile.accent,
+    categories: {
+      expense: parseCategoryField(formData.get("expenseCategories"), defaultCategories.expense),
+      income: parseCategoryField(formData.get("incomeCategories"), defaultCategories.income),
+    },
+  });
+
+  saveState();
+  populateCategorySelects();
+  updateBranding();
+  render();
+  showToast("Perfil salvo.");
+}
+
+function previewProfileFromForm() {
+  const formData = new FormData(elements.profileForm);
+  const currentProfile = getProfile();
+  const draftProfile = normalizeProfile({
+    ...currentProfile,
+    personName: formData.get("personName"),
+    appName: formData.get("customAppName"),
+    goal: formData.get("profileGoal"),
+    monthlyIncome: formData.get("monthlyIncome"),
+    theme: formData.get("themeMode"),
+    accent: formData.get("accentColor") || currentProfile.accent,
+    categories: {
+      expense: parseCategoryField(formData.get("expenseCategories"), defaultCategories.expense),
+      income: parseCategoryField(formData.get("incomeCategories"), defaultCategories.income),
+    },
+  });
+
+  applyTheme(draftProfile);
+  updateProfilePreview(draftProfile);
+}
+
+function resetForNewPerson() {
+  const confirmed = window.confirm("Limpar lançamentos, orçamentos e perfil para outra pessoa?");
+  if (!confirmed) return;
+
+  state = {
+    profile: createDefaultProfile(),
+    transactions: [],
+    budgets: {},
+  };
+  saveState();
+  resetForm();
+  fillProfileForm();
+  updateBranding();
+  render();
+  showToast("App pronto para outra pessoa.");
 }
 
 function expensesByCategory(transactions) {
@@ -607,14 +812,17 @@ function exportCsv() {
   ];
 
   const csv = rows.map((row) => row.map(csvCell).join(";")).join("\n");
-  downloadFile(`bolsario-lancamentos-${getTodayISO()}.csv`, csv, "text/csv;charset=utf-8");
+  const filenameBase = slug(getAppName());
+  downloadFile(`${filenameBase}-lancamentos-${getTodayISO()}.csv`, csv, "text/csv;charset=utf-8");
 
   const backup = JSON.stringify(state, null, 2);
-  setTimeout(() => downloadFile(`bolsario-backup-${getTodayISO()}.json`, backup, "application/json"), 250);
+  setTimeout(() => downloadFile(`${filenameBase}-backup-${getTodayISO()}.json`, backup, "application/json"), 250);
   showToast("Exportei CSV e backup JSON.");
 }
 
 function exportPdf() {
+  const profile = getProfile();
+  const appName = getAppName();
   const month = elements.monthFilter.value || getCurrentMonth();
   const transactions = getMonthTransactions().slice().sort((a, b) => a.date.localeCompare(b.date));
   const summary = summarize(transactions);
@@ -627,11 +835,16 @@ function exportPdf() {
     <header class="print-header">
       <div>
         <p>Relatório financeiro mensal</p>
-        <h1>${APP_NAME}</h1>
+        <h1>${escapeHtml(appName)}</h1>
         <span>${monthLabel(month)} • Gerado em ${shortDate(getTodayISO())}</span>
       </div>
-      <strong>Arquivo para conferência pessoal</strong>
+      <strong>${profile.personName ? `Arquivo de ${escapeHtml(profile.personName)}` : "Arquivo para conferência pessoal"}</strong>
     </header>
+
+    <section class="print-profile">
+      <article><span>Objetivo</span><strong>${escapeHtml(profile.goal)}</strong></article>
+      <article><span>Renda base mensal</span><strong>${Number(profile.monthlyIncome) > 0 ? currency(Number(profile.monthlyIncome)) : "Não definida"}</strong></article>
+    </section>
 
     <section class="print-metrics">
       <article><span>Saldo</span><strong>${currency(summary.balance)}</strong></article>
@@ -747,6 +960,7 @@ function importJson(file) {
         throw new Error("Formato inválido");
       }
       state = {
+        profile: normalizeProfile(parsed.profile),
         transactions: parsed.transactions.map((transaction) => ({
           ...transaction,
           id: transaction.id || uid(),
@@ -755,6 +969,9 @@ function importJson(file) {
         budgets: parsed.budgets || {},
       };
       saveState();
+      fillProfileForm();
+      updateBranding();
+      populateCategorySelects();
       showToast("Backup importado.");
       render();
     } catch {
@@ -809,6 +1026,10 @@ function bindEvents() {
   elements.transactionRows.addEventListener("click", handleTableClick);
   elements.budgetForm.addEventListener("submit", handleBudgetSubmit);
   elements.budgetList.addEventListener("click", handleBudgetListClick);
+  elements.profileForm.addEventListener("submit", handleProfileSubmit);
+  elements.resetPersonBtn.addEventListener("click", resetForNewPerson);
+  elements.profileForm.addEventListener("input", previewProfileFromForm);
+  elements.profileForm.addEventListener("change", previewProfileFromForm);
   elements.exportBtn.addEventListener("click", exportCsv);
   elements.pdfBtn.addEventListener("click", exportPdf);
   elements.importBtn.addEventListener("click", () => elements.importFile.click());
@@ -819,6 +1040,8 @@ function bindEvents() {
 function init() {
   elements.monthFilter.value = getCurrentMonth();
   elements.date.value = getTodayISO();
+  fillProfileForm();
+  updateBranding();
   populateCategorySelects();
   bindEvents();
   render();
