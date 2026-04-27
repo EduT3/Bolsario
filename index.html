@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bolsário | Controle Pessoal</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Navegação principal">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">B</div>
+          <div>
+            <p class="eyebrow">Bolsário</p>
+            <h1>Controle pessoal</h1>
+          </div>
+        </div>
+
+        <nav class="nav-list" aria-label="Seções">
+          <a class="nav-item active" href="#resumo">
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm10 7h6V4h-6v16ZM4 20h6v-4H4v4Z" /></svg>
+            </span>
+            Resumo
+          </a>
+          <a class="nav-item" href="#lancamentos">
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M5 4h14v2H5V4Zm0 7h14v2H5v-2Zm0 7h9v2H5v-2Z" /></svg>
+            </span>
+            Lançamentos
+          </a>
+          <a class="nav-item" href="#orcamento">
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-7-7V3Zm1 0v10h8A8 8 0 0 0 13 3Z" /></svg>
+            </span>
+            Orçamento
+          </a>
+        </nav>
+
+        <div class="sidebar-note">
+          <strong>Dados locais</strong>
+          <span>As informações ficam salvas neste navegador.</span>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Painel financeiro pessoal</p>
+            <h2>Organize o mês antes que ele organize você.</h2>
+          </div>
+          <div class="topbar-actions">
+            <label class="select-label" for="monthFilter">Mês</label>
+            <input id="monthFilter" type="month" />
+            <button class="icon-button" id="exportBtn" type="button" title="Exportar CSV" aria-label="Exportar CSV">
+              <svg viewBox="0 0 24 24"><path d="M11 3h2v10l3.5-3.5 1.4 1.4L12 16.8l-5.9-5.9 1.4-1.4L11 13V3ZM5 19h14v2H5v-2Z" /></svg>
+            </button>
+            <button class="icon-button" id="pdfBtn" type="button" title="Arquivar em PDF" aria-label="Arquivar em PDF">
+              <svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6V2Zm8 1.8V8h4.2L14 3.8ZM8 13h2.2c1.4 0 2.3-.8 2.3-2s-.9-2-2.3-2H8v6Zm1.5-1.3v-1.4h.6c.5 0 .8.3.8.7s-.3.7-.8.7h-.6ZM13.4 15V9h2c1.8 0 3 1.2 3 3s-1.2 3-3 3h-2Zm1.5-1.4h.4c.9 0 1.5-.6 1.5-1.6s-.6-1.6-1.5-1.6h-.4v3.2Z" /></svg>
+            </button>
+            <button class="icon-button" id="importBtn" type="button" title="Importar JSON" aria-label="Importar JSON">
+              <svg viewBox="0 0 24 24"><path d="M11 21h2V11l3.5 3.5 1.4-1.4L12 7.2l-5.9 5.9 1.4 1.4L11 11v10ZM5 3h14v2H5V3Z" /></svg>
+            </button>
+            <input id="importFile" class="visually-hidden" type="file" accept="application/json,.json" />
+          </div>
+        </header>
+
+        <div class="view-stack">
+          <section id="resumo" class="view summary-view active" data-view="resumo" aria-label="Resumo do mês">
+            <section class="status-strip" id="insightBox" aria-live="polite"></section>
+
+            <section class="metric-grid" aria-label="Resumo do mês">
+              <article class="metric-card">
+                <span>Saldo do mês</span>
+                <strong id="balanceValue">R$ 0,00</strong>
+                <small id="balanceHint">Sem lançamentos ainda</small>
+              </article>
+              <article class="metric-card">
+                <span>Entradas</span>
+                <strong id="incomeValue">R$ 0,00</strong>
+                <small id="incomeHint">0 lançamento</small>
+              </article>
+              <article class="metric-card">
+                <span>Gastos</span>
+                <strong id="expenseValue">R$ 0,00</strong>
+                <small id="expenseHint">0 lançamento</small>
+              </article>
+              <article class="metric-card">
+                <span>Meta de economia</span>
+                <strong id="savingRateValue">0%</strong>
+                <small id="savingHint">Ideal: 20% ou mais</small>
+              </article>
+            </section>
+
+            <section class="panel chart-panel" aria-labelledby="chartTitle">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Mapa do dinheiro</p>
+                  <h3 id="chartTitle">Gastos por categoria</h3>
+                </div>
+                <span class="pill" id="topCategory">Sem dados</span>
+              </div>
+              <div class="chart-wrap">
+                <canvas id="categoryChart" width="760" height="360" aria-label="Gráfico de gastos por categoria"></canvas>
+              </div>
+              <div class="legend" id="categoryLegend"></div>
+            </section>
+          </section>
+
+          <section id="lancamentos" class="view transaction-view" data-view="lancamentos" aria-labelledby="transactionsTitle">
+            <section class="content-grid">
+              <form id="transactionForm" class="panel form-panel" autocomplete="off">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Novo lançamento</p>
+                    <h3 id="formTitle">Adicionar gasto ou entrada</h3>
+                  </div>
+                  <button class="ghost-button hidden" id="cancelEditBtn" type="button">Cancelar edição</button>
+                </div>
+
+                <input id="editingId" type="hidden" />
+
+                <div class="segmented" role="group" aria-label="Tipo de lançamento">
+                  <input id="typeExpense" name="type" type="radio" value="expense" checked />
+                  <label for="typeExpense">Gasto</label>
+                  <input id="typeIncome" name="type" type="radio" value="income" />
+                  <label for="typeIncome">Entrada</label>
+                </div>
+
+                <div class="form-row">
+                  <label for="description">Descrição</label>
+                  <input id="description" name="description" type="text" placeholder="Ex.: mercado, salário, aluguel" required />
+                </div>
+
+                <div class="form-columns">
+                  <div class="form-row">
+                    <label for="amount">Valor</label>
+                    <input id="amount" name="amount" type="number" min="0.01" step="0.01" placeholder="0,00" required />
+                  </div>
+                  <div class="form-row">
+                    <label for="date">Data</label>
+                    <input id="date" name="date" type="date" required />
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <label for="category">Categoria</label>
+                  <select id="category" name="category" required></select>
+                </div>
+
+                <div class="form-row">
+                  <label for="account">Conta</label>
+                  <select id="account" name="account">
+                    <option value="Carteira">Carteira</option>
+                    <option value="Conta corrente">Conta corrente</option>
+                    <option value="Cartão de crédito">Cartão de crédito</option>
+                    <option value="Pix">Pix</option>
+                    <option value="Investimentos">Investimentos</option>
+                  </select>
+                </div>
+
+                <div class="form-row">
+                  <label for="notes">Observação</label>
+                  <textarea id="notes" name="notes" rows="3" placeholder="Opcional"></textarea>
+                </div>
+
+                <button class="primary-button" type="submit">
+                  <span class="icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z" /></svg>
+                  </span>
+                  Salvar lançamento
+                </button>
+              </form>
+
+              <section class="panel table-panel" aria-labelledby="transactionsTitle">
+                <div class="panel-heading wrap-heading">
+                  <div>
+                    <p class="eyebrow">Histórico</p>
+                    <h3 id="transactionsTitle">Lançamentos</h3>
+                  </div>
+                  <div class="filter-row">
+                    <select id="typeFilter" aria-label="Filtrar por tipo">
+                      <option value="all">Todos</option>
+                      <option value="expense">Gastos</option>
+                      <option value="income">Entradas</option>
+                    </select>
+                    <input id="searchFilter" type="search" placeholder="Buscar" aria-label="Buscar lançamentos" />
+                    <button class="ghost-button" id="clearFiltersBtn" type="button">Limpar</button>
+                  </div>
+                </div>
+
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Data</th>
+                        <th>Descrição</th>
+                        <th>Categoria</th>
+                        <th>Conta</th>
+                        <th class="number-cell">Valor</th>
+                        <th class="action-cell">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody id="transactionRows"></tbody>
+                  </table>
+                </div>
+                <div id="emptyState" class="empty-state hidden">
+                  <strong>Nenhum lançamento encontrado.</strong>
+                  <span>Ajuste os filtros ou cadastre um novo item.</span>
+                </div>
+              </section>
+            </section>
+          </section>
+
+          <section id="orcamento" class="view content-grid budget-section" data-view="orcamento">
+            <form id="budgetForm" class="panel form-panel" autocomplete="off">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Limites mensais</p>
+                  <h3>Orçamento por categoria</h3>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <label for="budgetCategory">Categoria</label>
+                <select id="budgetCategory"></select>
+              </div>
+              <div class="form-row">
+                <label for="budgetAmount">Limite mensal</label>
+                <input id="budgetAmount" type="number" min="0" step="0.01" placeholder="0,00" required />
+              </div>
+              <button class="primary-button" type="submit">
+                <span class="icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M5 4h14v2H5V4Zm1 4h12l-1.4 12H7.4L6 8Zm4 2v8h2v-8h-2Zm4 0v8h2v-8h-2Z" /></svg>
+                </span>
+                Salvar orçamento
+              </button>
+            </form>
+
+            <section class="panel budget-panel" aria-labelledby="budgetTitle">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Acompanhamento</p>
+                  <h3 id="budgetTitle">Uso do orçamento</h3>
+                </div>
+                <span class="pill" id="budgetSummary">0 categorias</span>
+              </div>
+              <div id="budgetList" class="budget-list"></div>
+            </section>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <section id="printReport" class="print-report" aria-hidden="true"></section>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
