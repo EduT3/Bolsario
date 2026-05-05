@@ -102,6 +102,7 @@ const elements = {
 };
 
 let state = loadState();
+let chartFrame = 0;
 
 function getTodayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -198,6 +199,41 @@ function slug(value) {
     .replace(/(^-|-$)/g, "");
 }
 
+function normalizeTransaction(transaction = {}) {
+  const amount = Number(transaction.amount);
+  const date = String(transaction.date || "");
+  const hasValidDate = /^\d{4}-\d{2}-\d{2}$/.test(date);
+
+  return {
+    id: transaction.id || uid(),
+    type: transaction.type === "income" ? "income" : "expense",
+    description: String(transaction.description || "").trim() || "Lançamento importado",
+    amount: Number.isFinite(amount) && amount > 0 ? amount : 0,
+    category: String(transaction.category || "Outros").trim() || "Outros",
+    account: String(transaction.account || "Não informada").trim() || "Não informada",
+    date: hasValidDate ? date : getTodayISO(),
+    notes: String(transaction.notes || "").trim(),
+  };
+}
+
+function normalizeTransactions(transactions) {
+  if (!Array.isArray(transactions)) return [];
+  return transactions.map(normalizeTransaction).filter((transaction) => transaction.amount > 0);
+}
+
+function normalizeBudgets(budgets = {}) {
+  if (!budgets || typeof budgets !== "object" || Array.isArray(budgets)) return {};
+
+  return Object.entries(budgets).reduce((acc, [category, limit]) => {
+    const cleanCategory = String(category || "").trim();
+    const cleanLimit = Number(limit);
+    if (cleanCategory && Number.isFinite(cleanLimit) && cleanLimit > 0) {
+      acc[cleanCategory] = cleanLimit;
+    }
+    return acc;
+  }, {});
+}
+
 function seedState() {
   return {
     profile: createDefaultProfile(),
@@ -207,6 +243,7 @@ function seedState() {
 }
 
 function isLegacyDemoState(value) {
+  if (!value || typeof value !== "object") return false;
   if (!Array.isArray(value.transactions) || value.transactions.length !== 5) return false;
 
   const demoTransactions = [
@@ -240,6 +277,7 @@ function loadState() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return seedState();
     const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return seedState();
     if (isLegacyDemoState(parsed)) {
       const emptyState = seedState();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(emptyState));
@@ -247,8 +285,8 @@ function loadState() {
     }
     return {
       profile: normalizeProfile(parsed.profile),
-      transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
-      budgets: parsed.budgets && typeof parsed.budgets === "object" ? parsed.budgets : {},
+      transactions: normalizeTransactions(parsed.transactions),
+      budgets: normalizeBudgets(parsed.budgets),
     };
   } catch {
     return seedState();
@@ -289,8 +327,16 @@ function setActiveView(viewName) {
   });
 
   if (activeView === "resumo") {
-    window.requestAnimationFrame(() => drawCategoryChart(getMonthTransactions()));
+    queueCategoryChartDraw();
   }
+}
+
+function queueCategoryChartDraw(transactions = getMonthTransactions()) {
+  if (chartFrame) window.cancelAnimationFrame(chartFrame);
+  chartFrame = window.requestAnimationFrame(() => {
+    chartFrame = 0;
+    drawCategoryChart(transactions);
+  });
 }
 
 function renderOptions(items, selected = "") {
@@ -391,8 +437,8 @@ function updateInsight(summary) {
   elements.insightBox.style.borderLeftColor = color;
   elements.insightBox.innerHTML = `
     <div>
-      <strong>${title}</strong>
-      <span>${message}</span>
+      <strong>${escapeHtml(title)}</strong>
+      <span>${escapeHtml(message)}</span>
     </div>
     <span class="pill">${budgetTotal > 0 ? `${budgetRatio}% do orçamento` : "Sem limites"}</span>
   `;
@@ -579,7 +625,7 @@ function drawCategoryChart(transactions) {
 
     const item = document.createElement("span");
     item.className = "legend-item";
-    item.innerHTML = `<span class="legend-swatch" style="background:${color}"></span>${category}`;
+    item.innerHTML = `<span class="legend-swatch" style="background:${color}"></span>${escapeHtml(category)}`;
     elements.categoryLegend.appendChild(item);
   });
 }
@@ -956,17 +1002,13 @@ function importJson(file) {
   reader.onload = () => {
     try {
       const parsed = JSON.parse(String(reader.result));
-      if (!Array.isArray(parsed.transactions) || typeof parsed.budgets !== "object") {
+      if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.transactions) || !parsed.budgets || typeof parsed.budgets !== "object" || Array.isArray(parsed.budgets)) {
         throw new Error("Formato inválido");
       }
       state = {
         profile: normalizeProfile(parsed.profile),
-        transactions: parsed.transactions.map((transaction) => ({
-          ...transaction,
-          id: transaction.id || uid(),
-          amount: Number(transaction.amount),
-        })),
-        budgets: parsed.budgets || {},
+        transactions: normalizeTransactions(parsed.transactions),
+        budgets: normalizeBudgets(parsed.budgets),
       };
       saveState();
       fillProfileForm();
@@ -1034,7 +1076,7 @@ function bindEvents() {
   elements.pdfBtn.addEventListener("click", exportPdf);
   elements.importBtn.addEventListener("click", () => elements.importFile.click());
   elements.importFile.addEventListener("change", (event) => importJson(event.target.files[0]));
-  window.addEventListener("resize", () => drawCategoryChart(getMonthTransactions()));
+  window.addEventListener("resize", () => queueCategoryChartDraw());
 }
 
 function init() {
