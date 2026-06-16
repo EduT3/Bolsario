@@ -1,4 +1,8 @@
 const STORAGE_KEY = "pierre-finance-v1";
+const APP_ID = "bolsario";
+const BACKUP_FORMAT = "bolsario.backup";
+const BACKUP_SCHEMA_VERSION = 1;
+const CSV_SCHEMA_VERSION = 1;
 const DEFAULT_APP_NAME = "Bolsário";
 const VIEWS = ["resumo", "lancamentos", "orcamento", "perfil"];
 
@@ -105,27 +109,54 @@ let state = loadState();
 let chartFrame = 0;
 
 function getTodayISO() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function getCurrentMonth() {
   return getTodayISO().slice(0, 7);
 }
 
+function isValidISODate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
+  if (!match) return false;
+
+  const [, yearValue, monthValue, dayValue] = match;
+  const year = Number(yearValue);
+  const month = Number(monthValue);
+  const day = Number(dayValue);
+  const date = new Date(year, month - 1, day);
+
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+}
+
+function isValidMonth(value) {
+  const match = /^(\d{4})-(\d{2})$/.exec(String(value || ""));
+  if (!match) return false;
+  const month = Number(match[2]);
+  return month >= 1 && month <= 12;
+}
+
 function currency(value) {
+  const amount = Number(value);
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
-  }).format(value || 0);
+  }).format(Number.isFinite(amount) ? amount : 0);
 }
 
 function shortDate(value) {
+  if (!isValidISODate(value)) return "Data inválida";
   const [year, month, day] = value.split("-").map(Number);
   return new Intl.DateTimeFormat("pt-BR").format(new Date(year, month - 1, day));
 }
 
 function monthLabel(value) {
-  const [year, month] = value.split("-").map(Number);
+  const validValue = isValidMonth(value) ? value : getCurrentMonth();
+  const [year, month] = validValue.split("-").map(Number);
   const label = new Intl.DateTimeFormat("pt-BR", {
     month: "long",
     year: "numeric",
@@ -135,6 +166,11 @@ function monthLabel(value) {
 
 function uid() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function normalizeId(value) {
+  const id = String(value || "").trim();
+  return /^[a-zA-Z0-9_-]+$/.test(id) ? id : uid();
 }
 
 function uniqueList(items, fallback = []) {
@@ -159,15 +195,20 @@ function createDefaultProfile() {
 }
 
 function normalizeProfile(profile = {}) {
+  if (!profile || typeof profile !== "object" || Array.isArray(profile)) {
+    profile = {};
+  }
   const defaults = createDefaultProfile();
-  const categories = profile.categories && typeof profile.categories === "object" ? profile.categories : {};
+  const categories = profile.categories && typeof profile.categories === "object" && !Array.isArray(profile.categories) ? profile.categories : {};
+  const monthlyIncome = Number(profile.monthlyIncome);
+
   return {
     ...defaults,
     ...profile,
     personName: String(profile.personName || "").trim(),
     appName: String(profile.appName || defaults.appName).trim() || defaults.appName,
     goal: goalHeadlines[profile.goal] ? profile.goal : defaults.goal,
-    monthlyIncome: Number(profile.monthlyIncome) > 0 ? Number(profile.monthlyIncome) : "",
+    monthlyIncome: Number.isFinite(monthlyIncome) && monthlyIncome > 0 ? monthlyIncome : "",
     theme: profile.theme === "dark" ? "dark" : "light",
     accent: accentMap[profile.accent] ? profile.accent : defaults.accent,
     categories: {
@@ -191,21 +232,26 @@ function getCategories(type) {
 }
 
 function slug(value) {
-  return String(value || DEFAULT_APP_NAME)
+  const filename = String(value || DEFAULT_APP_NAME)
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
+  return filename || "bolsario";
 }
 
 function normalizeTransaction(transaction = {}) {
+  if (!transaction || typeof transaction !== "object" || Array.isArray(transaction)) {
+    transaction = {};
+  }
+
   const amount = Number(transaction.amount);
   const date = String(transaction.date || "");
-  const hasValidDate = /^\d{4}-\d{2}-\d{2}$/.test(date);
+  const hasValidDate = isValidISODate(date);
 
   return {
-    id: transaction.id || uid(),
+    id: normalizeId(transaction.id),
     type: transaction.type === "income" ? "income" : "expense",
     description: String(transaction.description || "").trim() || "Lançamento importado",
     amount: Number.isFinite(amount) && amount > 0 ? amount : 0,
@@ -218,7 +264,18 @@ function normalizeTransaction(transaction = {}) {
 
 function normalizeTransactions(transactions) {
   if (!Array.isArray(transactions)) return [];
-  return transactions.map(normalizeTransaction).filter((transaction) => transaction.amount > 0);
+  const seenIds = new Set();
+
+  return transactions
+    .map(normalizeTransaction)
+    .filter((transaction) => transaction.amount > 0)
+    .map((transaction) => {
+      if (seenIds.has(transaction.id)) {
+        transaction.id = uid();
+      }
+      seenIds.add(transaction.id);
+      return transaction;
+    });
 }
 
 function normalizeBudgets(budgets = {}) {
@@ -232,6 +289,54 @@ function normalizeBudgets(budgets = {}) {
     }
     return acc;
   }, {});
+}
+
+function normalizeStateData(value = {}) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    value = {};
+  }
+
+  return {
+    profile: normalizeProfile(value.profile),
+    transactions: normalizeTransactions(value.transactions),
+    budgets: normalizeBudgets(value.budgets),
+  };
+}
+
+function extractBackupData(payload) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new Error("Backup inválido");
+  }
+
+  if (payload.format && payload.format !== BACKUP_FORMAT) {
+    throw new Error("Formato de backup não reconhecido");
+  }
+
+  const isVersionedBackup = payload.format === BACKUP_FORMAT;
+  const data = isVersionedBackup ? payload.data : payload;
+
+  if (!data || typeof data !== "object" || Array.isArray(data) || !Array.isArray(data.transactions)) {
+    throw new Error("Dados de backup inválidos");
+  }
+
+  return {
+    state: normalizeStateData(data),
+    schemaVersion: isVersionedBackup ? Number(payload.schemaVersion || 0) : 0,
+  };
+}
+
+function createBackupPayload() {
+  return {
+    format: BACKUP_FORMAT,
+    schemaVersion: BACKUP_SCHEMA_VERSION,
+    exportedAt: new Date().toISOString(),
+    app: {
+      id: APP_ID,
+      name: getAppName(),
+      storageKey: STORAGE_KEY,
+    },
+    data: normalizeStateData(state),
+  };
 }
 
 function seedState() {
@@ -283,23 +388,19 @@ function loadState() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(emptyState));
       return emptyState;
     }
-    return {
-      profile: normalizeProfile(parsed.profile),
-      transactions: normalizeTransactions(parsed.transactions),
-      budgets: normalizeBudgets(parsed.budgets),
-    };
+    return normalizeStateData(parsed);
   } catch {
     return seedState();
   }
 }
 
 function saveState() {
-  state.profile = normalizeProfile(state.profile);
+  state = normalizeStateData(state);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
 function selectedType() {
-  return document.querySelector("input[name='type']:checked").value;
+  return document.querySelector("input[name='type']:checked")?.value || "expense";
 }
 
 function getViewFromHash() {
@@ -346,14 +447,20 @@ function renderOptions(items, selected = "") {
     .join("");
 }
 
-function populateCategorySelects() {
+function populateCategorySelects(selectedCategory = elements.category.value, selectedBudgetCategory = elements.budgetCategory.value) {
   const type = selectedType();
-  elements.category.innerHTML = renderOptions(getCategories(type), elements.category.value);
-  elements.budgetCategory.innerHTML = renderOptions([...getCategories("expense"), ...Object.keys(state.budgets)], elements.budgetCategory.value);
+  const cleanSelectedCategory = String(selectedCategory || "").trim();
+  const cleanSelectedBudgetCategory = String(selectedBudgetCategory || "").trim();
+
+  elements.category.innerHTML = renderOptions(getCategories(type), cleanSelectedCategory);
+  if (cleanSelectedCategory) elements.category.value = cleanSelectedCategory;
+
+  elements.budgetCategory.innerHTML = renderOptions([...getCategories("expense"), ...Object.keys(state.budgets)], cleanSelectedBudgetCategory);
+  if (cleanSelectedBudgetCategory) elements.budgetCategory.value = cleanSelectedBudgetCategory;
 }
 
 function getMonthTransactions() {
-  const month = elements.monthFilter.value || getCurrentMonth();
+  const month = isValidMonth(elements.monthFilter.value) ? elements.monthFilter.value : getCurrentMonth();
   return state.transactions.filter((transaction) => transaction.date.startsWith(month));
 }
 
@@ -661,10 +768,10 @@ function renderTransactions() {
       <td class="number-cell ${amountClass}">${sign} ${currency(transaction.amount)}</td>
       <td class="action-cell">
         <div class="row-actions">
-          <button class="row-action" type="button" title="Editar" aria-label="Editar" data-action="edit" data-id="${transaction.id}">
+          <button class="row-action" type="button" title="Editar" aria-label="Editar" data-action="edit" data-id="${escapeHtml(transaction.id)}">
             <svg viewBox="0 0 24 24"><path d="m4 16.7-.7 4 4-.7L18.9 8.4l-3.3-3.3L4 16.7Zm13-13 3.3 3.3 1.2-1.2a2.3 2.3 0 0 0-3.3-3.3L17 3.7Z" /></svg>
           </button>
-          <button class="row-action" type="button" title="Excluir" aria-label="Excluir" data-action="delete" data-id="${transaction.id}">
+          <button class="row-action" type="button" title="Excluir" aria-label="Excluir" data-action="delete" data-id="${escapeHtml(transaction.id)}">
             <svg viewBox="0 0 24 24"><path d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm4 2v8h2v-8h-2Zm4 0v8h2v-8h-2Z" /></svg>
           </button>
         </div>
@@ -742,18 +849,20 @@ function handleTransactionSubmit(event) {
   event.preventDefault();
   const formData = new FormData(elements.transactionForm);
   const type = selectedType();
+  const amount = Number(formData.get("amount"));
+  const date = String(formData.get("date"));
   const transaction = {
     id: elements.editingId.value || uid(),
     type,
     description: String(formData.get("description")).trim(),
-    amount: Number(formData.get("amount")),
+    amount,
     category: String(formData.get("category")),
     account: String(formData.get("account")),
-    date: String(formData.get("date")),
+    date,
     notes: String(formData.get("notes") || "").trim(),
   };
 
-  if (!transaction.description || !transaction.amount || transaction.amount <= 0 || !transaction.date) {
+  if (!transaction.description || !Number.isFinite(transaction.amount) || transaction.amount <= 0 || !isValidISODate(transaction.date)) {
     showToast("Preencha descrição, valor e data.");
     return;
   }
@@ -792,7 +901,7 @@ function handleTableClick(event) {
   elements.cancelEditBtn.classList.remove("hidden");
   elements.typeExpense.checked = transaction.type === "expense";
   elements.typeIncome.checked = transaction.type === "income";
-  populateCategorySelects();
+  populateCategorySelects(transaction.category);
   elements.description.value = transaction.description;
   elements.amount.value = transaction.amount;
   elements.date.value = transaction.date;
@@ -807,7 +916,7 @@ function handleBudgetSubmit(event) {
   const category = elements.budgetCategory.value;
   const amount = Number(elements.budgetAmount.value);
 
-  if (!category || amount < 0) {
+  if (!category || !Number.isFinite(amount) || amount < 0) {
     showToast("Informe um limite válido.");
     return;
   }
@@ -857,19 +966,19 @@ function exportCsv() {
       ]),
   ];
 
-  const csv = rows.map((row) => row.map(csvCell).join(";")).join("\n");
+  const csv = `\uFEFF${rows.map((row) => row.map(csvCell).join(";")).join("\n")}`;
   const filenameBase = slug(getAppName());
-  downloadFile(`${filenameBase}-lancamentos-${getTodayISO()}.csv`, csv, "text/csv;charset=utf-8");
+  downloadFile(`${filenameBase}-lancamentos-v${CSV_SCHEMA_VERSION}-${getTodayISO()}.csv`, csv, "text/csv;charset=utf-8");
 
-  const backup = JSON.stringify(state, null, 2);
-  setTimeout(() => downloadFile(`${filenameBase}-backup-${getTodayISO()}.json`, backup, "application/json"), 250);
+  const backup = JSON.stringify(createBackupPayload(), null, 2);
+  setTimeout(() => downloadFile(`${filenameBase}-backup-v${BACKUP_SCHEMA_VERSION}-${getTodayISO()}.json`, backup, "application/json"), 250);
   showToast("Exportei CSV e backup JSON.");
 }
 
 function exportPdf() {
   const profile = getProfile();
   const appName = getAppName();
-  const month = elements.monthFilter.value || getCurrentMonth();
+  const month = isValidMonth(elements.monthFilter.value) ? elements.monthFilter.value : getCurrentMonth();
   const transactions = getMonthTransactions().slice().sort((a, b) => a.date.localeCompare(b.date));
   const summary = summarize(transactions);
   const categoryEntries = Object.entries(expensesByCategory(transactions)).sort((a, b) => b[1] - a[1]);
@@ -980,7 +1089,10 @@ function renderReportTable(headers, rows, emptyMessage) {
 }
 
 function csvCell(value) {
-  const text = String(value ?? "");
+  let text = String(value ?? "");
+  if (/^[=+\-@\t\r]/.test(text)) {
+    text = `'${text}`;
+  }
   return `"${text.replaceAll('"', '""')}"`;
 }
 
@@ -1002,19 +1114,14 @@ function importJson(file) {
   reader.onload = () => {
     try {
       const parsed = JSON.parse(String(reader.result));
-      if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.transactions) || !parsed.budgets || typeof parsed.budgets !== "object" || Array.isArray(parsed.budgets)) {
-        throw new Error("Formato inválido");
-      }
-      state = {
-        profile: normalizeProfile(parsed.profile),
-        transactions: normalizeTransactions(parsed.transactions),
-        budgets: normalizeBudgets(parsed.budgets),
-      };
+      const backup = extractBackupData(parsed);
+      state = backup.state;
       saveState();
       fillProfileForm();
       updateBranding();
       populateCategorySelects();
-      showToast("Backup importado.");
+      const compatibility = backup.schemaVersion > BACKUP_SCHEMA_VERSION ? " em modo compatibilidade" : "";
+      showToast(`Backup importado${compatibility}.`);
       render();
     } catch {
       showToast("Não consegui importar este arquivo JSON.");
