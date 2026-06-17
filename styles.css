@@ -342,6 +342,10 @@ textarea:focus {
   gap: 22px;
 }
 
+.planning-view.active {
+  gap: 18px;
+}
+
 .panel {
   padding: 18px;
 }
@@ -505,6 +509,17 @@ textarea:focus {
   width: 136px;
 }
 
+.advanced-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(132px, 1fr)) repeat(2, minmax(140px, 1fr)) minmax(180px, 1.4fr) auto;
+  width: 100%;
+}
+
+.advanced-filters input,
+.advanced-filters select {
+  width: 100%;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
@@ -622,6 +637,102 @@ tbody tr:hover {
 
 .budget-delete {
   flex: 0 0 34px;
+}
+
+.mini-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.mini-metric-grid article,
+.annual-month,
+.compact-item,
+.goal-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.mini-metric-grid article {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+}
+
+.mini-metric-grid span,
+.annual-month small,
+.compact-item span,
+.goal-item small {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.annual-month-list {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.annual-month {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+}
+
+.planning-hero {
+  display: grid;
+}
+
+.planning-grid {
+  grid-template-columns: minmax(300px, 440px) minmax(0, 1fr);
+}
+
+.compact-list,
+.archive-list {
+  display: grid;
+  gap: 10px;
+}
+
+.compact-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+}
+
+.compact-item strong,
+.compact-item span {
+  display: block;
+}
+
+.compact-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  text-align: right;
+}
+
+.compact-value {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+}
+
+.compact-value small {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.goal-item {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
 }
 
 .progress {
@@ -783,6 +894,32 @@ tbody tr:hover {
   overflow-wrap: anywhere;
 }
 
+.setup-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.56);
+}
+
+.setup-card {
+  display: grid;
+  gap: 14px;
+  width: min(560px, 100%);
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.22);
+}
+
+.setup-card h2 {
+  margin: 0;
+  letter-spacing: 0;
+}
+
 .empty-state {
   display: grid;
   gap: 4px;
@@ -854,6 +991,11 @@ tbody tr:hover {
 :root[data-theme="dark"] .ghost-button,
 :root[data-theme="dark"] .legend-item,
 :root[data-theme="dark"] .budget-item,
+:root[data-theme="dark"] .compact-item,
+:root[data-theme="dark"] .goal-item,
+:root[data-theme="dark"] .annual-month,
+:root[data-theme="dark"] .mini-metric-grid article,
+:root[data-theme="dark"] .setup-card,
 :root[data-theme="dark"] .row-action,
 :root[data-theme="dark"] .profile-summary article {
   background: #111827;
@@ -902,7 +1044,7 @@ tbody tr:hover {
   }
 
   .nav-list {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .sidebar-note {
@@ -942,6 +1084,15 @@ tbody tr:hover {
   .filter-row select {
     width: 100%;
   }
+
+  .advanced-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .annual-month-list,
+  .mini-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 580px) {
@@ -954,7 +1105,10 @@ tbody tr:hover {
   }
 
   .metric-grid,
-  .form-columns {
+  .form-columns,
+  .advanced-filters,
+  .annual-month-list,
+  .mini-metric-grid {
     grid-template-columns: 1fr;
   }
 

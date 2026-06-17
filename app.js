@@ -1,10 +1,10 @@
 const STORAGE_KEY = "pierre-finance-v1";
 const APP_ID = "bolsario";
 const BACKUP_FORMAT = "bolsario.backup";
-const BACKUP_SCHEMA_VERSION = 1;
-const CSV_SCHEMA_VERSION = 1;
+const BACKUP_SCHEMA_VERSION = 2;
+const CSV_SCHEMA_VERSION = 2;
 const DEFAULT_APP_NAME = "Bolsário";
-const VIEWS = ["resumo", "lancamentos", "orcamento", "perfil"];
+const VIEWS = ["resumo", "lancamentos", "orcamento", "planejamento", "perfil"];
 
 const defaultCategories = {
   expense: [
@@ -22,6 +22,25 @@ const defaultCategories = {
 };
 
 const palette = ["#0f766e", "#2563eb", "#b45309", "#dc2626", "#6d28d9", "#0891b2", "#15803d", "#be185d", "#475569"];
+
+const accountOptions = ["Carteira", "Conta corrente", "Cartão de crédito", "Pix", "Investimentos"];
+
+const defaultCategoryMeta = {
+  Moradia: { icon: "🏠", color: "#0f766e" },
+  Mercado: { icon: "🛒", color: "#15803d" },
+  Transporte: { icon: "🚗", color: "#2563eb" },
+  Saúde: { icon: "❤️", color: "#dc2626" },
+  Educação: { icon: "📚", color: "#6d28d9" },
+  Lazer: { icon: "🎟️", color: "#be185d" },
+  Assinaturas: { icon: "🔁", color: "#0891b2" },
+  Dívidas: { icon: "⚠️", color: "#b45309" },
+  Outros: { icon: "•", color: "#475569" },
+  Salário: { icon: "💼", color: "#2563eb" },
+  Freelance: { icon: "🧩", color: "#0891b2" },
+  Vendas: { icon: "🏷️", color: "#15803d" },
+  Investimentos: { icon: "📈", color: "#6d28d9" },
+  Reembolso: { icon: "↩️", color: "#0f766e" },
+};
 
 const accentMap = {
   "#0f766e": "#115e59",
@@ -62,6 +81,12 @@ const elements = {
   expenseHint: document.querySelector("#expenseHint"),
   savingRateValue: document.querySelector("#savingRateValue"),
   savingHint: document.querySelector("#savingHint"),
+  yearIncomeValue: document.querySelector("#yearIncomeValue"),
+  yearExpenseValue: document.querySelector("#yearExpenseValue"),
+  yearBalanceValue: document.querySelector("#yearBalanceValue"),
+  yearSavingRateValue: document.querySelector("#yearSavingRateValue"),
+  annualYearLabel: document.querySelector("#annualYearLabel"),
+  annualMonthList: document.querySelector("#annualMonthList"),
   transactionForm: document.querySelector("#transactionForm"),
   editingId: document.querySelector("#editingId"),
   formTitle: document.querySelector("#formTitle"),
@@ -78,6 +103,10 @@ const elements = {
   categoryLegend: document.querySelector("#categoryLegend"),
   topCategory: document.querySelector("#topCategory"),
   typeFilter: document.querySelector("#typeFilter"),
+  categoryFilter: document.querySelector("#categoryFilter"),
+  accountFilter: document.querySelector("#accountFilter"),
+  startDateFilter: document.querySelector("#startDateFilter"),
+  endDateFilter: document.querySelector("#endDateFilter"),
   searchFilter: document.querySelector("#searchFilter"),
   clearFiltersBtn: document.querySelector("#clearFiltersBtn"),
   transactionRows: document.querySelector("#transactionRows"),
@@ -85,8 +114,39 @@ const elements = {
   budgetForm: document.querySelector("#budgetForm"),
   budgetCategory: document.querySelector("#budgetCategory"),
   budgetAmount: document.querySelector("#budgetAmount"),
+  budgetPercent: document.querySelector("#budgetPercent"),
   budgetList: document.querySelector("#budgetList"),
   budgetSummary: document.querySelector("#budgetSummary"),
+  archiveMonthBtn: document.querySelector("#archiveMonthBtn"),
+  archiveList: document.querySelector("#archiveList"),
+  recurringForm: document.querySelector("#recurringForm"),
+  recurringType: document.querySelector("#recurringType"),
+  recurringDay: document.querySelector("#recurringDay"),
+  recurringDescription: document.querySelector("#recurringDescription"),
+  recurringAmount: document.querySelector("#recurringAmount"),
+  recurringPercent: document.querySelector("#recurringPercent"),
+  recurringCategory: document.querySelector("#recurringCategory"),
+  recurringAccount: document.querySelector("#recurringAccount"),
+  recurringNotes: document.querySelector("#recurringNotes"),
+  generateRecurringBtn: document.querySelector("#generateRecurringBtn"),
+  recurringList: document.querySelector("#recurringList"),
+  installmentForm: document.querySelector("#installmentForm"),
+  installmentDescription: document.querySelector("#installmentDescription"),
+  installmentTotal: document.querySelector("#installmentTotal"),
+  installmentCount: document.querySelector("#installmentCount"),
+  installmentStartMonth: document.querySelector("#installmentStartMonth"),
+  installmentCategory: document.querySelector("#installmentCategory"),
+  installmentAccount: document.querySelector("#installmentAccount"),
+  installmentNotes: document.querySelector("#installmentNotes"),
+  installmentList: document.querySelector("#installmentList"),
+  goalForm: document.querySelector("#goalForm"),
+  goalName: document.querySelector("#goalName"),
+  goalTarget: document.querySelector("#goalTarget"),
+  goalTargetPercent: document.querySelector("#goalTargetPercent"),
+  goalCurrent: document.querySelector("#goalCurrent"),
+  goalCurrentPercent: document.querySelector("#goalCurrentPercent"),
+  goalDueDate: document.querySelector("#goalDueDate"),
+  goalsList: document.querySelector("#goalsList"),
   profileForm: document.querySelector("#profileForm"),
   personName: document.querySelector("#personName"),
   customAppName: document.querySelector("#customAppName"),
@@ -95,6 +155,7 @@ const elements = {
   themeMode: document.querySelector("#themeMode"),
   expenseCategories: document.querySelector("#expenseCategories"),
   incomeCategories: document.querySelector("#incomeCategories"),
+  categoryVisuals: document.querySelector("#categoryVisuals"),
   resetPersonBtn: document.querySelector("#resetPersonBtn"),
   previewMark: document.querySelector("#previewMark"),
   previewAppName: document.querySelector("#previewAppName"),
@@ -102,6 +163,12 @@ const elements = {
   previewGoal: document.querySelector("#previewGoal"),
   previewIncome: document.querySelector("#previewIncome"),
   previewCategories: document.querySelector("#previewCategories"),
+  setupGate: document.querySelector("#setupGate"),
+  setupForm: document.querySelector("#setupForm"),
+  setupName: document.querySelector("#setupName"),
+  setupGoal: document.querySelector("#setupGoal"),
+  setupIncome: document.querySelector("#setupIncome"),
+  skipSetupBtn: document.querySelector("#skipSetupBtn"),
   toast: document.querySelector("#toast"),
 };
 
@@ -148,6 +215,54 @@ function currency(value) {
   }).format(Number.isFinite(amount) ? amount : 0);
 }
 
+function hasInputValue(value) {
+  return String(value ?? "").trim() !== "";
+}
+
+function roundMoney(value) {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? Math.round(amount * 100) / 100 : Number.NaN;
+}
+
+function getMonthlyIncomeValue() {
+  const income = Number(getProfile().monthlyIncome);
+  return Number.isFinite(income) && income > 0 ? income : 0;
+}
+
+function resolveAmountFromInputs(amountInput, percentInput) {
+  if (hasInputValue(percentInput)) {
+    const percent = Number(percentInput);
+    const income = getMonthlyIncomeValue();
+    return {
+      amount: Number.isFinite(percent) && percent >= 0 && income > 0 ? roundMoney((income * percent) / 100) : Number.NaN,
+      usesPercent: true,
+    };
+  }
+
+  return {
+    amount: Number(amountInput),
+    usesPercent: false,
+  };
+}
+
+function resolveOptionalAmountFromInputs(amountInput, percentInput) {
+  if (hasInputValue(percentInput)) return resolveAmountFromInputs(amountInput, percentInput);
+
+  return {
+    amount: hasInputValue(amountInput) ? Number(amountInput) : 0,
+    usesPercent: false,
+  };
+}
+
+function incomePercentLabel(value) {
+  const income = getMonthlyIncomeValue();
+  const amount = Number(value);
+  if (!income || !Number.isFinite(amount) || amount <= 0) return "";
+
+  const percent = (amount / income) * 100;
+  return `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(percent)}% da renda`;
+}
+
 function shortDate(value) {
   if (!isValidISODate(value)) return "Data inválida";
   const [year, month, day] = value.split("-").map(Number);
@@ -162,6 +277,29 @@ function monthLabel(value) {
     year: "numeric",
   }).format(new Date(year, month - 1, 1));
   return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function yearFromMonth(value) {
+  return String(isValidMonth(value) ? value : getCurrentMonth()).slice(0, 4);
+}
+
+function addMonths(monthValue, amount) {
+  const validValue = isValidMonth(monthValue) ? monthValue : getCurrentMonth();
+  const [year, month] = validValue.split("-").map(Number);
+  const date = new Date(year, month - 1 + amount, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function daysInMonth(monthValue) {
+  const validValue = isValidMonth(monthValue) ? monthValue : getCurrentMonth();
+  const [year, month] = validValue.split("-").map(Number);
+  return new Date(year, month, 0).getDate();
+}
+
+function dateForMonthDay(monthValue, day) {
+  const validValue = isValidMonth(monthValue) ? monthValue : getCurrentMonth();
+  const cleanDay = Math.min(Math.max(Number(day) || 1, 1), daysInMonth(validValue));
+  return `${validValue}-${String(cleanDay).padStart(2, "0")}`;
 }
 
 function uid() {
@@ -179,6 +317,28 @@ function uniqueList(items, fallback = []) {
   return unique.length ? unique : fallback.slice();
 }
 
+function isHexColor(value) {
+  return /^#[0-9a-fA-F]{6}$/.test(String(value || "").trim());
+}
+
+function normalizeCategoryMeta(meta = {}) {
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return { ...defaultCategoryMeta };
+
+  const clean = { ...defaultCategoryMeta };
+  Object.entries(meta).forEach(([category, value]) => {
+    const cleanCategory = String(category || "").trim();
+    if (!cleanCategory || !value || typeof value !== "object" || Array.isArray(value)) return;
+
+    const fallback = clean[cleanCategory] || { icon: "•", color: "#475569" };
+    clean[cleanCategory] = {
+      icon: String(value.icon || fallback.icon || "•").trim().slice(0, 4) || "•",
+      color: isHexColor(value.color) ? String(value.color).trim() : fallback.color,
+    };
+  });
+
+  return clean;
+}
+
 function createDefaultProfile() {
   return {
     personName: "",
@@ -187,10 +347,12 @@ function createDefaultProfile() {
     monthlyIncome: "",
     theme: "light",
     accent: "#0f766e",
+    setupComplete: false,
     categories: {
       expense: defaultCategories.expense.slice(),
       income: defaultCategories.income.slice(),
     },
+    categoryMeta: normalizeCategoryMeta(defaultCategoryMeta),
   };
 }
 
@@ -201,6 +363,7 @@ function normalizeProfile(profile = {}) {
   const defaults = createDefaultProfile();
   const categories = profile.categories && typeof profile.categories === "object" && !Array.isArray(profile.categories) ? profile.categories : {};
   const monthlyIncome = Number(profile.monthlyIncome);
+  const categoryMeta = normalizeCategoryMeta(profile.categoryMeta);
 
   return {
     ...defaults,
@@ -211,10 +374,12 @@ function normalizeProfile(profile = {}) {
     monthlyIncome: Number.isFinite(monthlyIncome) && monthlyIncome > 0 ? monthlyIncome : "",
     theme: profile.theme === "dark" ? "dark" : "light",
     accent: accentMap[profile.accent] ? profile.accent : defaults.accent,
+    setupComplete: Boolean(profile.setupComplete),
     categories: {
       expense: uniqueList(Array.isArray(categories.expense) ? categories.expense : [], defaults.categories.expense),
       income: uniqueList(Array.isArray(categories.income) ? categories.income : [], defaults.categories.income),
     },
+    categoryMeta,
   };
 }
 
@@ -229,6 +394,20 @@ function getAppName() {
 
 function getCategories(type) {
   return getProfile().categories[type] || defaultCategories[type];
+}
+
+function getAllCategories() {
+  return uniqueList([...getCategories("expense"), ...getCategories("income"), ...Object.keys(state.budgets)]);
+}
+
+function getCategoryMeta(category) {
+  const profile = getProfile();
+  return profile.categoryMeta[category] || defaultCategoryMeta[category] || { icon: "•", color: "#475569" };
+}
+
+function categoryLabel(category) {
+  const meta = getCategoryMeta(category);
+  return `${meta.icon} ${category}`;
 }
 
 function slug(value) {
@@ -259,6 +438,11 @@ function normalizeTransaction(transaction = {}) {
     account: String(transaction.account || "Não informada").trim() || "Não informada",
     date: hasValidDate ? date : getTodayISO(),
     notes: String(transaction.notes || "").trim(),
+    recurringId: transaction.recurringId ? normalizeId(transaction.recurringId) : "",
+    installmentId: transaction.installmentId ? normalizeId(transaction.installmentId) : "",
+    installmentNumber: Number.isFinite(Number(transaction.installmentNumber)) ? Number(transaction.installmentNumber) : "",
+    installmentTotal: Number.isFinite(Number(transaction.installmentTotal)) ? Number(transaction.installmentTotal) : "",
+    source: ["manual", "recurring", "installment"].includes(transaction.source) ? transaction.source : "manual",
   };
 }
 
@@ -291,6 +475,94 @@ function normalizeBudgets(budgets = {}) {
   }, {});
 }
 
+function normalizeRecurringItems(items) {
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .map((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+      const amount = Number(item.amount);
+      const day = Number(item.day);
+      if (!Number.isFinite(amount) || amount <= 0 || !Number.isFinite(day)) return null;
+      return {
+        id: normalizeId(item.id),
+        type: item.type === "income" ? "income" : "expense",
+        description: String(item.description || "").trim() || "Recorrente",
+        amount,
+        category: String(item.category || "Outros").trim() || "Outros",
+        account: String(item.account || "Conta corrente").trim() || "Conta corrente",
+        day: Math.min(Math.max(Math.round(day), 1), 31),
+        notes: String(item.notes || "").trim(),
+        active: item.active !== false,
+        createdAt: isValidISODate(item.createdAt) ? item.createdAt : getTodayISO(),
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizeInstallments(items) {
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .map((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+      const totalAmount = Number(item.totalAmount);
+      const count = Number(item.installments);
+      if (!Number.isFinite(totalAmount) || totalAmount <= 0 || !Number.isFinite(count) || count < 2) return null;
+      return {
+        id: normalizeId(item.id),
+        description: String(item.description || "").trim() || "Compra parcelada",
+        totalAmount,
+        installments: Math.min(Math.max(Math.round(count), 2), 60),
+        category: String(item.category || "Outros").trim() || "Outros",
+        account: String(item.account || "Cartão de crédito").trim() || "Cartão de crédito",
+        startMonth: isValidMonth(item.startMonth) ? item.startMonth : getCurrentMonth(),
+        notes: String(item.notes || "").trim(),
+        createdAt: isValidISODate(item.createdAt) ? item.createdAt : getTodayISO(),
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizeGoals(items) {
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .map((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+      const target = Number(item.target);
+      const current = Number(item.current);
+      if (!Number.isFinite(target) || target <= 0) return null;
+      return {
+        id: normalizeId(item.id),
+        name: String(item.name || "").trim() || "Meta financeira",
+        target,
+        current: Number.isFinite(current) && current > 0 ? current : 0,
+        dueDate: isValidISODate(item.dueDate) ? item.dueDate : "",
+        createdAt: isValidISODate(item.createdAt) ? item.createdAt : getTodayISO(),
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizeArchives(items) {
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .map((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item) || !isValidMonth(item.month)) return null;
+      return {
+        id: normalizeId(item.id),
+        month: item.month,
+        archivedAt: isValidISODate(item.archivedAt) ? item.archivedAt : getTodayISO(),
+        summary: summarize(normalizeTransactions(item.transactions || [])),
+        transactions: normalizeTransactions(item.transactions || []),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.month.localeCompare(a.month));
+}
+
 function normalizeStateData(value = {}) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     value = {};
@@ -300,6 +572,10 @@ function normalizeStateData(value = {}) {
     profile: normalizeProfile(value.profile),
     transactions: normalizeTransactions(value.transactions),
     budgets: normalizeBudgets(value.budgets),
+    recurring: normalizeRecurringItems(value.recurring),
+    installments: normalizeInstallments(value.installments),
+    goals: normalizeGoals(value.goals),
+    archives: normalizeArchives(value.archives),
   };
 }
 
@@ -344,6 +620,10 @@ function seedState() {
     profile: createDefaultProfile(),
     transactions: [],
     budgets: {},
+    recurring: [],
+    installments: [],
+    goals: [],
+    archives: [],
   };
 }
 
@@ -447,6 +727,17 @@ function renderOptions(items, selected = "") {
     .join("");
 }
 
+function renderAccountOptions(selected = "") {
+  const accounts = uniqueList([
+    ...accountOptions,
+    ...state.transactions.map((transaction) => transaction.account),
+    ...state.recurring.map((item) => item.account),
+    ...state.installments.map((item) => item.account),
+    selected,
+  ]);
+  return renderOptions(accounts, selected);
+}
+
 function populateCategorySelects(selectedCategory = elements.category.value, selectedBudgetCategory = elements.budgetCategory.value) {
   const type = selectedType();
   const cleanSelectedCategory = String(selectedCategory || "").trim();
@@ -457,6 +748,25 @@ function populateCategorySelects(selectedCategory = elements.category.value, sel
 
   elements.budgetCategory.innerHTML = renderOptions([...getCategories("expense"), ...Object.keys(state.budgets)], cleanSelectedBudgetCategory);
   if (cleanSelectedBudgetCategory) elements.budgetCategory.value = cleanSelectedBudgetCategory;
+
+  elements.recurringCategory.innerHTML = renderOptions(getCategories(elements.recurringType.value), elements.recurringCategory.value);
+  elements.installmentCategory.innerHTML = renderOptions(getCategories("expense"), elements.installmentCategory.value);
+  elements.recurringAccount.innerHTML = renderAccountOptions(elements.recurringAccount.value);
+  elements.installmentAccount.innerHTML = renderAccountOptions(elements.installmentAccount.value || "Cartão de crédito");
+}
+
+function populateFilters() {
+  const currentCategory = elements.categoryFilter.value || "all";
+  const currentAccount = elements.accountFilter.value || "all";
+  const categoryOptions = ["all", ...getAllCategories()];
+  const accountOptionsList = ["all", ...uniqueList(state.transactions.map((transaction) => transaction.account))];
+
+  elements.categoryFilter.innerHTML = categoryOptions
+    .map((item) => `<option value="${escapeHtml(item)}"${item === currentCategory ? " selected" : ""}>${item === "all" ? "Todas categorias" : escapeHtml(categoryLabel(item))}</option>`)
+    .join("");
+  elements.accountFilter.innerHTML = accountOptionsList
+    .map((item) => `<option value="${escapeHtml(item)}"${item === currentAccount ? " selected" : ""}>${item === "all" ? "Todas contas" : escapeHtml(item)}</option>`)
+    .join("");
 }
 
 function getMonthTransactions() {
@@ -466,10 +776,19 @@ function getMonthTransactions() {
 
 function getFilteredTransactions() {
   const type = elements.typeFilter.value;
+  const category = elements.categoryFilter.value;
+  const account = elements.accountFilter.value;
+  const startDate = elements.startDateFilter.value;
+  const endDate = elements.endDateFilter.value;
   const query = elements.searchFilter.value.trim().toLowerCase();
+  const hasDateRange = isValidISODate(startDate) || isValidISODate(endDate);
 
-  return getMonthTransactions()
+  return (hasDateRange ? state.transactions : getMonthTransactions())
     .filter((transaction) => type === "all" || transaction.type === type)
+    .filter((transaction) => category === "all" || transaction.category === category)
+    .filter((transaction) => account === "all" || transaction.account === account)
+    .filter((transaction) => !isValidISODate(startDate) || transaction.date >= startDate)
+    .filter((transaction) => !isValidISODate(endDate) || transaction.date <= endDate)
     .filter((transaction) => {
       if (!query) return true;
       return [transaction.description, transaction.category, transaction.account, transaction.notes]
@@ -495,6 +814,35 @@ function summarize(transactions) {
     expenseCount: transactions.filter((transaction) => transaction.type === "expense").length,
     savingRate: income > 0 ? Math.round(((income - expense) / income) * 100) : 0,
   };
+}
+
+function getYearTransactions() {
+  const year = yearFromMonth(elements.monthFilter.value);
+  return state.transactions.filter((transaction) => transaction.date.startsWith(year));
+}
+
+function updateAnnualSummary() {
+  const year = yearFromMonth(elements.monthFilter.value);
+  const yearTransactions = getYearTransactions();
+  const summary = summarize(yearTransactions);
+  elements.annualYearLabel.textContent = year;
+  elements.yearIncomeValue.textContent = currency(summary.income);
+  elements.yearExpenseValue.textContent = currency(summary.expense);
+  elements.yearBalanceValue.textContent = currency(summary.balance);
+  elements.yearSavingRateValue.textContent = `${summary.savingRate}%`;
+
+  elements.annualMonthList.innerHTML = "";
+  Array.from({ length: 12 }, (_, index) => `${year}-${String(index + 1).padStart(2, "0")}`).forEach((month) => {
+    const monthSummary = summarize(state.transactions.filter((transaction) => transaction.date.startsWith(month)));
+    const item = document.createElement("article");
+    item.className = "annual-month";
+    item.innerHTML = `
+      <strong>${monthLabel(month).replace(` de ${year}`, "")}</strong>
+      <span>${currency(monthSummary.balance)}</span>
+      <small>${currency(monthSummary.expense)} gastos</small>
+    `;
+    elements.annualMonthList.appendChild(item);
+  });
 }
 
 function updateMetrics(summary) {
@@ -582,6 +930,15 @@ function updateProfilePreview(profile = getProfile()) {
   elements.previewCategories.textContent = `${profile.categories.expense.length} gastos • ${profile.categories.income.length} entradas`;
 }
 
+function serializeCategoryVisuals(categoryMeta = getProfile().categoryMeta) {
+  return getAllCategories()
+    .map((category) => {
+      const meta = categoryMeta[category] || getCategoryMeta(category);
+      return `${category} | ${meta.icon || "•"} | ${meta.color || "#475569"}`;
+    })
+    .join("\n");
+}
+
 function fillProfileForm() {
   const profile = getProfile();
   elements.personName.value = profile.personName;
@@ -591,6 +948,7 @@ function fillProfileForm() {
   elements.themeMode.value = profile.theme;
   elements.expenseCategories.value = profile.categories.expense.join("\n");
   elements.incomeCategories.value = profile.categories.income.join("\n");
+  elements.categoryVisuals.value = serializeCategoryVisuals(profile.categoryMeta);
 
   const accentInput = document.querySelector(`input[name="accentColor"][value="${profile.accent}"]`);
   if (accentInput) accentInput.checked = true;
@@ -599,6 +957,24 @@ function fillProfileForm() {
 
 function parseCategoryField(value, fallback) {
   return uniqueList(String(value || "").split(/[\n,;]+/), fallback);
+}
+
+function parseCategoryVisuals(value, fallback = getProfile().categoryMeta) {
+  const meta = normalizeCategoryMeta(fallback);
+  String(value || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .forEach((line) => {
+      const [category, icon, color] = line.split("|").map((part) => String(part || "").trim());
+      if (!category) return;
+      const previous = meta[category] || defaultCategoryMeta[category] || { icon: "•", color: "#475569" };
+      meta[category] = {
+        icon: icon || previous.icon,
+        color: isHexColor(color) ? color : previous.color,
+      };
+    });
+  return meta;
 }
 
 function handleProfileSubmit(event) {
@@ -614,15 +990,18 @@ function handleProfileSubmit(event) {
     monthlyIncome: formData.get("monthlyIncome"),
     theme: formData.get("themeMode"),
     accent: formData.get("accentColor") || currentProfile.accent,
+    setupComplete: true,
     categories: {
       expense: parseCategoryField(formData.get("expenseCategories"), defaultCategories.expense),
       income: parseCategoryField(formData.get("incomeCategories"), defaultCategories.income),
     },
+    categoryMeta: parseCategoryVisuals(formData.get("categoryVisuals"), currentProfile.categoryMeta),
   });
 
   saveState();
   populateCategorySelects();
   updateBranding();
+  updateSetupGate();
   render();
   showToast("Perfil salvo.");
 }
@@ -642,6 +1021,7 @@ function previewProfileFromForm() {
       expense: parseCategoryField(formData.get("expenseCategories"), defaultCategories.expense),
       income: parseCategoryField(formData.get("incomeCategories"), defaultCategories.income),
     },
+    categoryMeta: parseCategoryVisuals(formData.get("categoryVisuals"), currentProfile.categoryMeta),
   });
 
   applyTheme(draftProfile);
@@ -656,6 +1036,10 @@ function resetForNewPerson() {
     profile: createDefaultProfile(),
     transactions: [],
     budgets: {},
+    recurring: [],
+    installments: [],
+    goals: [],
+    archives: [],
   };
   saveState();
   resetForm();
@@ -663,6 +1047,43 @@ function resetForNewPerson() {
   updateBranding();
   render();
   showToast("App pronto para outra pessoa.");
+  updateSetupGate();
+}
+
+function updateSetupGate() {
+  const profile = getProfile();
+  const hasData =
+    state.transactions.length ||
+    Object.keys(state.budgets).length ||
+    state.recurring.length ||
+    state.installments.length ||
+    state.goals.length;
+  elements.setupGate.classList.toggle("hidden", profile.setupComplete || hasData);
+}
+
+function handleSetupSubmit(event) {
+  event.preventDefault();
+  const formData = new FormData(elements.setupForm);
+  const income = Number(formData.get("setupIncome"));
+  state.profile = normalizeProfile({
+    ...getProfile(),
+    personName: formData.get("setupName"),
+    goal: formData.get("setupGoal"),
+    monthlyIncome: Number.isFinite(income) && income > 0 ? income : "",
+    setupComplete: true,
+  });
+  saveState();
+  fillProfileForm();
+  updateBranding();
+  updateSetupGate();
+  render();
+  showToast("Configuração inicial salva.");
+}
+
+function skipSetup() {
+  state.profile = normalizeProfile({ ...getProfile(), setupComplete: true });
+  saveState();
+  updateSetupGate();
 }
 
 function expensesByCategory(transactions) {
@@ -710,7 +1131,7 @@ function drawCategoryChart(transactions) {
   entries.slice(0, 7).forEach(([category, value], index) => {
     const y = top + index * (barHeight + gap);
     const barWidth = (value / max) * width;
-    const color = palette[index % palette.length];
+    const color = getCategoryMeta(category).color || palette[index % palette.length];
 
     ctx.fillStyle = "#344054";
     ctx.font = "700 12px system-ui, sans-serif";
@@ -732,7 +1153,7 @@ function drawCategoryChart(transactions) {
 
     const item = document.createElement("span");
     item.className = "legend-item";
-    item.innerHTML = `<span class="legend-swatch" style="background:${color}"></span>${escapeHtml(category)}`;
+    item.innerHTML = `<span class="legend-swatch" style="background:${color}"></span>${escapeHtml(categoryLabel(category))}`;
     elements.categoryLegend.appendChild(item);
   });
 }
@@ -763,7 +1184,7 @@ function renderTransactions() {
         <strong>${escapeHtml(transaction.description)}</strong>
         ${transaction.notes ? `<br><small>${escapeHtml(transaction.notes)}</small>` : ""}
       </td>
-      <td>${escapeHtml(transaction.category)}</td>
+      <td>${escapeHtml(categoryLabel(transaction.category))}</td>
       <td>${escapeHtml(transaction.account)}</td>
       <td class="number-cell ${amountClass}">${sign} ${currency(transaction.amount)}</td>
       <td class="action-cell">
@@ -803,14 +1224,16 @@ function renderBudgets(transactions) {
   entries.forEach(([category, limit]) => {
     const used = spending[category] || 0;
     const percent = limit > 0 ? Math.round((used / limit) * 100) : 0;
+    const limitIncomeLabel = incomePercentLabel(limit);
+    const usedIncomeLabel = incomePercentLabel(used);
     const item = document.createElement("article");
     item.className = "budget-item";
     const severity = percent >= 100 ? "danger" : percent >= 80 ? "warn" : "";
     item.innerHTML = `
       <div class="budget-item-header">
-        <span class="budget-item-title">${escapeHtml(category)}</span>
+        <span class="budget-item-title">${escapeHtml(categoryLabel(category))}</span>
         <div class="budget-item-meta">
-          <span class="budget-item-amount">${currency(used)} de ${currency(limit)}</span>
+          <span class="budget-item-amount">${currency(used)} de ${currency(limit)}${limitIncomeLabel ? ` (${escapeHtml(limitIncomeLabel)})` : ""}</span>
           <button class="row-action budget-delete" type="button" title="Excluir orçamento" aria-label="Excluir orçamento de ${escapeHtml(category)}" data-category="${escapeHtml(category)}">
             <svg viewBox="0 0 24 24"><path d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm4 2v8h2v-8h-2Zm4 0v8h2v-8h-2Z" /></svg>
           </button>
@@ -819,7 +1242,7 @@ function renderBudgets(transactions) {
       <div class="progress" aria-label="${percent}% usado em ${escapeHtml(category)}">
         <div class="progress-bar ${severity}" style="width:${Math.min(percent, 100)}%"></div>
       </div>
-      <small>${percent}% usado${percent > 100 ? `, passou ${currency(used - limit)}` : ""}</small>
+      <small>${percent}% usado${usedIncomeLabel ? `, gasto ${escapeHtml(usedIncomeLabel)}` : ""}${percent > 100 ? `, passou ${currency(used - limit)}` : ""}</small>
     `;
     elements.budgetList.appendChild(item);
   });
@@ -830,9 +1253,15 @@ function render() {
   const summary = summarize(monthTransactions);
   updateMetrics(summary);
   updateInsight(summary);
+  updateAnnualSummary();
   drawCategoryChart(monthTransactions);
+  populateFilters();
   renderTransactions();
   renderBudgets(monthTransactions);
+  renderRecurring();
+  renderInstallments();
+  renderGoals();
+  renderArchives();
 }
 
 function resetForm() {
@@ -860,6 +1289,11 @@ function handleTransactionSubmit(event) {
     account: String(formData.get("account")),
     date,
     notes: String(formData.get("notes") || "").trim(),
+    recurringId: "",
+    installmentId: "",
+    installmentNumber: "",
+    installmentTotal: "",
+    source: "manual",
   };
 
   if (!transaction.description || !Number.isFinite(transaction.amount) || transaction.amount <= 0 || !isValidISODate(transaction.date)) {
@@ -914,9 +1348,17 @@ function handleTableClick(event) {
 function handleBudgetSubmit(event) {
   event.preventDefault();
   const category = elements.budgetCategory.value;
-  const amount = Number(elements.budgetAmount.value);
+  const hasAmount = hasInputValue(elements.budgetAmount.value);
+  const hasPercent = hasInputValue(elements.budgetPercent.value);
+  const resolved = resolveAmountFromInputs(elements.budgetAmount.value, elements.budgetPercent.value);
+  const amount = roundMoney(resolved.amount);
 
-  if (!category || !Number.isFinite(amount) || amount < 0) {
+  if (resolved.usesPercent && !Number.isFinite(amount)) {
+    showToast("Defina a renda base mensal no Perfil para usar porcentagem.");
+    return;
+  }
+
+  if (!category || (!hasAmount && !hasPercent) || !Number.isFinite(amount) || amount < 0) {
     showToast("Informe um limite válido.");
     return;
   }
@@ -928,6 +1370,7 @@ function handleBudgetSubmit(event) {
   }
 
   elements.budgetAmount.value = "";
+  elements.budgetPercent.value = "";
   saveState();
   showToast(amount === 0 ? "Orçamento removido." : "Orçamento salvo.");
   render();
@@ -949,9 +1392,363 @@ function handleBudgetListClick(event) {
   render();
 }
 
+function transactionExistsForRecurring(recurringId, month) {
+  return state.transactions.some((transaction) => transaction.recurringId === recurringId && transaction.date.startsWith(month));
+}
+
+function generateRecurringForMonth(month = elements.monthFilter.value || getCurrentMonth()) {
+  const targetMonth = isValidMonth(month) ? month : getCurrentMonth();
+  let created = 0;
+
+  state.recurring
+    .filter((item) => item.active)
+    .forEach((item) => {
+      if (transactionExistsForRecurring(item.id, targetMonth)) return;
+      state.transactions.push({
+        id: uid(),
+        type: item.type,
+        description: item.description,
+        amount: item.amount,
+        category: item.category,
+        account: item.account,
+        date: dateForMonthDay(targetMonth, item.day),
+        notes: item.notes,
+        recurringId: item.id,
+        installmentId: "",
+        installmentNumber: "",
+        installmentTotal: "",
+        source: "recurring",
+      });
+      created += 1;
+    });
+
+  saveState();
+  render();
+  showToast(created ? `${created} recorrente${created === 1 ? "" : "s"} gerado${created === 1 ? "" : "s"}.` : "Nenhum recorrente pendente.");
+}
+
+function handleRecurringSubmit(event) {
+  event.preventDefault();
+  const formData = new FormData(elements.recurringForm);
+  const amountInput = formData.get("recurringAmount");
+  const percentInput = formData.get("recurringPercent");
+  const resolved = resolveAmountFromInputs(amountInput, percentInput);
+  const amount = roundMoney(resolved.amount);
+  const day = Number(formData.get("recurringDay"));
+
+  if (resolved.usesPercent && !Number.isFinite(amount)) {
+    showToast("Defina a renda base mensal no Perfil para usar porcentagem.");
+    return;
+  }
+
+  if (!formData.get("recurringDescription") || (!hasInputValue(amountInput) && !hasInputValue(percentInput)) || !Number.isFinite(amount) || amount <= 0 || !Number.isFinite(day)) {
+    showToast("Informe descrição, valor e dia válidos.");
+    return;
+  }
+
+  state.recurring.push({
+    id: uid(),
+    type: formData.get("recurringType") === "income" ? "income" : "expense",
+    description: String(formData.get("recurringDescription")).trim(),
+    amount,
+    category: String(formData.get("recurringCategory")),
+    account: String(formData.get("recurringAccount") || "Conta corrente"),
+    day: Math.min(Math.max(Math.round(day), 1), 31),
+    notes: String(formData.get("recurringNotes") || "").trim(),
+    active: true,
+    createdAt: getTodayISO(),
+  });
+
+  elements.recurringForm.reset();
+  elements.recurringDay.value = "1";
+  saveState();
+  populateCategorySelects();
+  render();
+  showToast("Recorrente salvo.");
+}
+
+function handleRecurringListClick(event) {
+  const button = event.target.closest("button[data-recurring-action]");
+  if (!button) return;
+  const id = button.dataset.id;
+  const item = state.recurring.find((recurring) => recurring.id === id);
+  if (!item) return;
+
+  if (button.dataset.recurringAction === "toggle") {
+    item.active = !item.active;
+  } else if (button.dataset.recurringAction === "delete") {
+    const confirmed = window.confirm(`Excluir recorrente "${item.description}"?`);
+    if (!confirmed) return;
+    state.recurring = state.recurring.filter((recurring) => recurring.id !== id);
+  }
+
+  saveState();
+  render();
+}
+
+function renderRecurring() {
+  elements.recurringList.innerHTML = "";
+  if (!state.recurring.length) {
+    elements.recurringList.innerHTML = `<div class="empty-state"><strong>Nenhum recorrente cadastrado.</strong></div>`;
+    return;
+  }
+
+  state.recurring.forEach((item) => {
+    const recurringIncomeLabel = incomePercentLabel(item.amount);
+    const row = document.createElement("article");
+    row.className = "compact-item";
+    row.innerHTML = `
+      <div>
+        <strong>${escapeHtml(item.description)}</strong>
+        <span>${item.type === "income" ? "Entrada" : "Gasto"} • dia ${item.day} • ${escapeHtml(categoryLabel(item.category))}</span>
+      </div>
+      <div class="compact-actions">
+        <div class="compact-value">
+          <strong>${currency(item.amount)}</strong>
+          ${recurringIncomeLabel ? `<small>${escapeHtml(recurringIncomeLabel)}</small>` : ""}
+        </div>
+        <button class="row-action" type="button" title="${item.active ? "Pausar" : "Ativar"}" data-recurring-action="toggle" data-id="${escapeHtml(item.id)}">${item.active ? "||" : "▶"}</button>
+        <button class="row-action" type="button" title="Excluir" data-recurring-action="delete" data-id="${escapeHtml(item.id)}">×</button>
+      </div>
+    `;
+    elements.recurringList.appendChild(row);
+  });
+}
+
+function createInstallmentTransactions(plan) {
+  const totalCents = Math.round(plan.totalAmount * 100);
+  const baseCents = Math.floor(totalCents / plan.installments);
+  const remainder = totalCents - baseCents * plan.installments;
+
+  Array.from({ length: plan.installments }, (_, index) => {
+    const installmentNumber = index + 1;
+    const amountCents = baseCents + (index < remainder ? 1 : 0);
+    const month = addMonths(plan.startMonth, index);
+    state.transactions.push({
+      id: uid(),
+      type: "expense",
+      description: `${plan.description} (${installmentNumber}/${plan.installments})`,
+      amount: amountCents / 100,
+      category: plan.category,
+      account: plan.account,
+      date: dateForMonthDay(month, 1),
+      notes: plan.notes,
+      recurringId: "",
+      installmentId: plan.id,
+      installmentNumber,
+      installmentTotal: plan.installments,
+      source: "installment",
+    });
+  });
+}
+
+function handleInstallmentSubmit(event) {
+  event.preventDefault();
+  const formData = new FormData(elements.installmentForm);
+  const totalAmount = Number(formData.get("installmentTotal"));
+  const installments = Number(formData.get("installmentCount"));
+  const startMonth = String(formData.get("installmentStartMonth"));
+
+  if (!formData.get("installmentDescription") || !Number.isFinite(totalAmount) || totalAmount <= 0 || !Number.isFinite(installments) || installments < 2 || !isValidMonth(startMonth)) {
+    showToast("Informe dados válidos para a compra parcelada.");
+    return;
+  }
+
+  const plan = {
+    id: uid(),
+    description: String(formData.get("installmentDescription")).trim(),
+    totalAmount,
+    installments: Math.min(Math.max(Math.round(installments), 2), 60),
+    category: String(formData.get("installmentCategory")),
+    account: String(formData.get("installmentAccount") || "Cartão de crédito"),
+    startMonth,
+    notes: String(formData.get("installmentNotes") || "").trim(),
+    createdAt: getTodayISO(),
+  };
+
+  state.installments.push(plan);
+  createInstallmentTransactions(plan);
+  elements.installmentForm.reset();
+  elements.installmentCount.value = "2";
+  elements.installmentStartMonth.value = getCurrentMonth();
+  saveState();
+  populateCategorySelects();
+  render();
+  showToast("Parcelas criadas.");
+}
+
+function handleInstallmentListClick(event) {
+  const button = event.target.closest("button[data-installment-action]");
+  if (!button) return;
+  const id = button.dataset.id;
+  const plan = state.installments.find((item) => item.id === id);
+  if (!plan) return;
+  const confirmed = window.confirm(`Excluir compra parcelada "${plan.description}" e suas parcelas?`);
+  if (!confirmed) return;
+  state.installments = state.installments.filter((item) => item.id !== id);
+  state.transactions = state.transactions.filter((transaction) => transaction.installmentId !== id);
+  saveState();
+  render();
+}
+
+function renderInstallments() {
+  elements.installmentList.innerHTML = "";
+  if (!state.installments.length) {
+    elements.installmentList.innerHTML = `<div class="empty-state"><strong>Nenhuma compra parcelada.</strong></div>`;
+    return;
+  }
+
+  state.installments.forEach((item) => {
+    const row = document.createElement("article");
+    row.className = "compact-item";
+    row.innerHTML = `
+      <div>
+        <strong>${escapeHtml(item.description)}</strong>
+        <span>${item.installments}x • ${monthLabel(item.startMonth)} • ${escapeHtml(categoryLabel(item.category))}</span>
+      </div>
+      <div class="compact-actions">
+        <strong>${currency(item.totalAmount)}</strong>
+        <button class="row-action" type="button" title="Excluir" data-installment-action="delete" data-id="${escapeHtml(item.id)}">×</button>
+      </div>
+    `;
+    elements.installmentList.appendChild(row);
+  });
+}
+
+function handleGoalSubmit(event) {
+  event.preventDefault();
+  const formData = new FormData(elements.goalForm);
+  const targetInput = formData.get("goalTarget");
+  const targetPercentInput = formData.get("goalTargetPercent");
+  const currentInput = formData.get("goalCurrent");
+  const currentPercentInput = formData.get("goalCurrentPercent");
+  const targetResolved = resolveAmountFromInputs(targetInput, targetPercentInput);
+  const currentResolved = resolveOptionalAmountFromInputs(currentInput, currentPercentInput);
+  const target = roundMoney(targetResolved.amount);
+  const current = roundMoney(currentResolved.amount);
+  const dueDate = String(formData.get("goalDueDate") || "");
+
+  if ((targetResolved.usesPercent || currentResolved.usesPercent) && (!Number.isFinite(target) || !Number.isFinite(current))) {
+    showToast("Defina a renda base mensal no Perfil para usar porcentagem.");
+    return;
+  }
+
+  if (!formData.get("goalName") || (!hasInputValue(targetInput) && !hasInputValue(targetPercentInput)) || !Number.isFinite(target) || target <= 0 || !Number.isFinite(current) || current < 0 || (dueDate && !isValidISODate(dueDate))) {
+    showToast("Informe dados válidos para a meta.");
+    return;
+  }
+
+  state.goals.push({
+    id: uid(),
+    name: String(formData.get("goalName")).trim(),
+    target,
+    current: Number.isFinite(current) && current > 0 ? current : 0,
+    dueDate,
+    createdAt: getTodayISO(),
+  });
+
+  elements.goalForm.reset();
+  elements.goalCurrent.value = "0";
+  saveState();
+  render();
+  showToast("Meta salva.");
+}
+
+function handleGoalsListClick(event) {
+  const button = event.target.closest("button[data-goal-action]");
+  if (!button) return;
+  const id = button.dataset.id;
+  const goal = state.goals.find((item) => item.id === id);
+  if (!goal) return;
+
+  if (button.dataset.goalAction === "delete") {
+    const confirmed = window.confirm(`Excluir meta "${goal.name}"?`);
+    if (!confirmed) return;
+    state.goals = state.goals.filter((item) => item.id !== id);
+  }
+
+  saveState();
+  render();
+}
+
+function renderGoals() {
+  elements.goalsList.innerHTML = "";
+  if (!state.goals.length) {
+    elements.goalsList.innerHTML = `<div class="empty-state"><strong>Nenhuma meta cadastrada.</strong></div>`;
+    return;
+  }
+
+  state.goals.forEach((goal) => {
+    const percent = Math.min(Math.round((goal.current / goal.target) * 100), 100);
+    const currentIncomeLabel = incomePercentLabel(goal.current);
+    const targetIncomeLabel = incomePercentLabel(goal.target);
+    const row = document.createElement("article");
+    row.className = "goal-item";
+    row.innerHTML = `
+      <div class="budget-item-header">
+        <span class="budget-item-title">${escapeHtml(goal.name)}</span>
+        <button class="row-action" type="button" title="Excluir" data-goal-action="delete" data-id="${escapeHtml(goal.id)}">×</button>
+      </div>
+      <div class="progress" aria-label="${percent}% concluído">
+        <div class="progress-bar" style="width:${percent}%"></div>
+      </div>
+      <small>${currency(goal.current)}${currentIncomeLabel ? ` (${escapeHtml(currentIncomeLabel)})` : ""} de ${currency(goal.target)}${targetIncomeLabel ? ` (${escapeHtml(targetIncomeLabel)})` : ""}${goal.dueDate ? ` • ${shortDate(goal.dueDate)}` : ""}</small>
+    `;
+    elements.goalsList.appendChild(row);
+  });
+}
+
+function archiveCurrentMonth() {
+  const month = isValidMonth(elements.monthFilter.value) ? elements.monthFilter.value : getCurrentMonth();
+  const transactions = state.transactions.filter((transaction) => transaction.date.startsWith(month));
+  if (!transactions.length) {
+    showToast("Nenhum lançamento neste mês.");
+    return;
+  }
+
+  const confirmed = window.confirm(`Arquivar ${monthLabel(month)} e remover os lançamentos deste mês da lista ativa?`);
+  if (!confirmed) return;
+
+  state.archives = state.archives.filter((archive) => archive.month !== month);
+  state.archives.push({
+    id: uid(),
+    month,
+    archivedAt: getTodayISO(),
+    summary: summarize(transactions),
+    transactions,
+  });
+  state.transactions = state.transactions.filter((transaction) => !transaction.date.startsWith(month));
+  saveState();
+  render();
+  showToast("Mês arquivado.");
+}
+
+function renderArchives() {
+  elements.archiveList.innerHTML = "";
+  if (!state.archives.length) {
+    elements.archiveList.innerHTML = `<div class="empty-state"><strong>Nenhum mês arquivado.</strong></div>`;
+    return;
+  }
+
+  state.archives.slice(0, 6).forEach((archive) => {
+    const row = document.createElement("article");
+    row.className = "compact-item";
+    row.innerHTML = `
+      <div>
+        <strong>${monthLabel(archive.month)}</strong>
+        <span>${archive.transactions.length} lançamentos • arquivado em ${shortDate(archive.archivedAt)}</span>
+      </div>
+      <div class="compact-actions">
+        <strong>${currency(archive.summary.balance)}</strong>
+      </div>
+    `;
+    elements.archiveList.appendChild(row);
+  });
+}
+
 function exportCsv() {
   const rows = [
-    ["data", "tipo", "descricao", "categoria", "conta", "valor", "observacao"],
+    ["data", "tipo", "descricao", "categoria", "conta", "valor", "origem", "observacao"],
     ...state.transactions
       .slice()
       .sort((a, b) => a.date.localeCompare(b.date))
@@ -962,6 +1759,7 @@ function exportCsv() {
         transaction.category,
         transaction.account,
         transaction.amount.toFixed(2),
+        transaction.source || "manual",
         transaction.notes || "",
       ]),
   ];
@@ -1024,7 +1822,7 @@ function exportPdf() {
     <section class="print-section">
       <h2>Orçamento</h2>
       ${renderReportTable(
-        ["Categoria", "Gasto", "Limite", "Uso"],
+        ["Categoria", "Gasto", "Limite", "Uso", "Limite/renda"],
         budgetEntries.map(([category, limit]) => {
           const used = categoryEntries.find(([name]) => name === category)?.[1] || 0;
           return [
@@ -1032,6 +1830,7 @@ function exportPdf() {
             currency(used),
             currency(Number(limit)),
             `${Math.round((used / Number(limit)) * 100)}%`,
+            incomePercentLabel(Number(limit)) || "-",
           ];
         }),
         "Nenhum orçamento cadastrado."
@@ -1164,9 +1963,17 @@ function bindEvents() {
   window.addEventListener("hashchange", () => setActiveView(getViewFromHash()));
   elements.monthFilter.addEventListener("change", render);
   elements.typeFilter.addEventListener("change", renderTransactions);
+  elements.categoryFilter.addEventListener("change", renderTransactions);
+  elements.accountFilter.addEventListener("change", renderTransactions);
+  elements.startDateFilter.addEventListener("change", renderTransactions);
+  elements.endDateFilter.addEventListener("change", renderTransactions);
   elements.searchFilter.addEventListener("input", renderTransactions);
   elements.clearFiltersBtn.addEventListener("click", () => {
     elements.typeFilter.value = "all";
+    elements.categoryFilter.value = "all";
+    elements.accountFilter.value = "all";
+    elements.startDateFilter.value = "";
+    elements.endDateFilter.value = "";
     elements.searchFilter.value = "";
     renderTransactions();
   });
@@ -1175,10 +1982,21 @@ function bindEvents() {
   elements.transactionRows.addEventListener("click", handleTableClick);
   elements.budgetForm.addEventListener("submit", handleBudgetSubmit);
   elements.budgetList.addEventListener("click", handleBudgetListClick);
+  elements.archiveMonthBtn.addEventListener("click", archiveCurrentMonth);
+  elements.recurringType.addEventListener("change", () => populateCategorySelects());
+  elements.recurringForm.addEventListener("submit", handleRecurringSubmit);
+  elements.generateRecurringBtn.addEventListener("click", () => generateRecurringForMonth());
+  elements.recurringList.addEventListener("click", handleRecurringListClick);
+  elements.installmentForm.addEventListener("submit", handleInstallmentSubmit);
+  elements.installmentList.addEventListener("click", handleInstallmentListClick);
+  elements.goalForm.addEventListener("submit", handleGoalSubmit);
+  elements.goalsList.addEventListener("click", handleGoalsListClick);
   elements.profileForm.addEventListener("submit", handleProfileSubmit);
   elements.resetPersonBtn.addEventListener("click", resetForNewPerson);
   elements.profileForm.addEventListener("input", previewProfileFromForm);
   elements.profileForm.addEventListener("change", previewProfileFromForm);
+  elements.setupForm.addEventListener("submit", handleSetupSubmit);
+  elements.skipSetupBtn.addEventListener("click", skipSetup);
   elements.exportBtn.addEventListener("click", exportCsv);
   elements.pdfBtn.addEventListener("click", exportPdf);
   elements.importBtn.addEventListener("click", () => elements.importFile.click());
@@ -1189,12 +2007,17 @@ function bindEvents() {
 function init() {
   elements.monthFilter.value = getCurrentMonth();
   elements.date.value = getTodayISO();
+  elements.installmentStartMonth.value = getCurrentMonth();
+  elements.setupGoal.value = getProfile().goal;
+  elements.setupName.value = getProfile().personName;
+  elements.setupIncome.value = getProfile().monthlyIncome || "";
   fillProfileForm();
   updateBranding();
   populateCategorySelects();
   bindEvents();
   render();
   setActiveView(getViewFromHash());
+  updateSetupGate();
 }
 
 init();

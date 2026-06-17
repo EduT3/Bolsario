@@ -36,6 +36,12 @@
             </span>
             Orçamento
           </a>
+          <a class="nav-item" href="#planejamento">
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M7 3h2v2h6V3h2v2h3v16H4V5h3V3Zm11 8H6v8h12v-8ZM6 7v2h12V7H6Zm2 6h3v3H8v-3Zm5 0h3v3h-3v-3Z" /></svg>
+            </span>
+            Planejamento
+          </a>
           <a class="nav-item" href="#perfil">
             <span class="icon" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8.6 4a7.8 7.8 0 0 0-.1-1.2l2-1.5-2-3.5-2.4 1a8.6 8.6 0 0 0-2-1.2L15.8 3h-4l-.4 2.6a8.6 8.6 0 0 0-2 1.2l-2.4-1-2 3.5 2 1.5A7.8 7.8 0 0 0 7 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.5 2.4-1a8.6 8.6 0 0 0 2 1.2l.4 2.6h4l.4-2.6a8.6 8.6 0 0 0 2-1.2l2.4 1 2-3.5-2-1.5c.1-.4.1-.8.1-1.2Z" /></svg>
@@ -112,6 +118,35 @@
               </div>
               <div class="legend" id="categoryLegend"></div>
             </section>
+
+            <section class="panel annual-panel" aria-labelledby="annualTitle">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Ano selecionado</p>
+                  <h3 id="annualTitle">Resumo anual</h3>
+                </div>
+                <span class="pill" id="annualYearLabel">Ano</span>
+              </div>
+              <section class="mini-metric-grid" aria-label="Resumo anual">
+                <article>
+                  <span>Entradas</span>
+                  <strong id="yearIncomeValue">R$ 0,00</strong>
+                </article>
+                <article>
+                  <span>Gastos</span>
+                  <strong id="yearExpenseValue">R$ 0,00</strong>
+                </article>
+                <article>
+                  <span>Saldo</span>
+                  <strong id="yearBalanceValue">R$ 0,00</strong>
+                </article>
+                <article>
+                  <span>Economia</span>
+                  <strong id="yearSavingRateValue">0%</strong>
+                </article>
+              </section>
+              <div id="annualMonthList" class="annual-month-list"></div>
+            </section>
           </section>
 
           <section id="lancamentos" class="view transaction-view" data-view="lancamentos" aria-labelledby="transactionsTitle">
@@ -185,12 +220,20 @@
                     <p class="eyebrow">Histórico</p>
                     <h3 id="transactionsTitle">Lançamentos</h3>
                   </div>
-                  <div class="filter-row">
+                  <div class="filter-row advanced-filters">
                     <select id="typeFilter" aria-label="Filtrar por tipo">
                       <option value="all">Todos</option>
                       <option value="expense">Gastos</option>
                       <option value="income">Entradas</option>
                     </select>
+                    <select id="categoryFilter" aria-label="Filtrar por categoria">
+                      <option value="all">Todas categorias</option>
+                    </select>
+                    <select id="accountFilter" aria-label="Filtrar por conta">
+                      <option value="all">Todas contas</option>
+                    </select>
+                    <input id="startDateFilter" type="date" aria-label="Data inicial" />
+                    <input id="endDateFilter" type="date" aria-label="Data final" />
                     <input id="searchFilter" type="search" placeholder="Buscar" aria-label="Buscar lançamentos" />
                     <button class="ghost-button" id="clearFiltersBtn" type="button">Limpar</button>
                   </div>
@@ -232,9 +275,15 @@
                 <label for="budgetCategory">Categoria</label>
                 <select id="budgetCategory"></select>
               </div>
-              <div class="form-row">
-                <label for="budgetAmount">Limite mensal</label>
-                <input id="budgetAmount" type="number" min="0" step="0.01" placeholder="0,00" required />
+              <div class="form-columns">
+                <div class="form-row">
+                  <label for="budgetAmount">Limite em R$</label>
+                  <input id="budgetAmount" type="number" min="0" step="0.01" placeholder="0,00" />
+                </div>
+                <div class="form-row">
+                  <label for="budgetPercent">% da renda</label>
+                  <input id="budgetPercent" type="number" min="0" step="0.1" placeholder="Ex.: 15" />
+                </div>
               </div>
               <button class="primary-button" type="submit">
                 <span class="icon" aria-hidden="true">
@@ -253,6 +302,185 @@
                 <span class="pill" id="budgetSummary">0 categorias</span>
               </div>
               <div id="budgetList" class="budget-list"></div>
+            </section>
+          </section>
+
+          <section id="planejamento" class="view planning-view" data-view="planejamento" aria-labelledby="planningTitle">
+            <section class="panel planning-hero" aria-labelledby="planningTitle">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Rotina financeira</p>
+                  <h3 id="planningTitle">Planejamento</h3>
+                </div>
+                <button class="ghost-button danger-button" id="archiveMonthBtn" type="button">Arquivar mês</button>
+              </div>
+              <div id="archiveList" class="archive-list"></div>
+            </section>
+
+            <section class="content-grid planning-grid">
+              <form id="recurringForm" class="panel form-panel" autocomplete="off">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Automático</p>
+                    <h3>Recorrentes</h3>
+                  </div>
+                  <button class="ghost-button" id="generateRecurringBtn" type="button">Gerar mês</button>
+                </div>
+                <div class="form-columns">
+                  <div class="form-row">
+                    <label for="recurringType">Tipo</label>
+                    <select id="recurringType" name="recurringType">
+                      <option value="expense">Gasto</option>
+                      <option value="income">Entrada</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <label for="recurringDay">Dia</label>
+                    <input id="recurringDay" name="recurringDay" type="number" min="1" max="31" value="1" required />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label for="recurringDescription">Descrição</label>
+                  <input id="recurringDescription" name="recurringDescription" type="text" required />
+                </div>
+                <div class="form-columns">
+                  <div class="form-row">
+                    <label for="recurringAmount">Valor em R$</label>
+                    <input id="recurringAmount" name="recurringAmount" type="number" min="0.01" step="0.01" />
+                  </div>
+                  <div class="form-row">
+                    <label for="recurringPercent">% da renda</label>
+                    <input id="recurringPercent" name="recurringPercent" type="number" min="0" step="0.1" placeholder="Ex.: 8" />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label for="recurringCategory">Categoria</label>
+                  <select id="recurringCategory" name="recurringCategory" required></select>
+                </div>
+                <div class="form-row">
+                  <label for="recurringAccount">Conta</label>
+                  <select id="recurringAccount" name="recurringAccount"></select>
+                </div>
+                <div class="form-row">
+                  <label for="recurringNotes">Observação</label>
+                  <textarea id="recurringNotes" name="recurringNotes" rows="2"></textarea>
+                </div>
+                <button class="primary-button" type="submit">Salvar recorrente</button>
+              </form>
+
+              <section class="panel list-panel" aria-labelledby="recurringListTitle">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Agenda</p>
+                    <h3 id="recurringListTitle">Lançamentos recorrentes</h3>
+                  </div>
+                </div>
+                <div id="recurringList" class="compact-list"></div>
+              </section>
+            </section>
+
+            <section class="content-grid planning-grid">
+              <form id="installmentForm" class="panel form-panel" autocomplete="off">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Parcelas</p>
+                    <h3>Compra parcelada</h3>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label for="installmentDescription">Descrição</label>
+                  <input id="installmentDescription" name="installmentDescription" type="text" required />
+                </div>
+                <div class="form-columns">
+                  <div class="form-row">
+                    <label for="installmentTotal">Valor total</label>
+                    <input id="installmentTotal" name="installmentTotal" type="number" min="0.01" step="0.01" required />
+                  </div>
+                  <div class="form-row">
+                    <label for="installmentCount">Parcelas</label>
+                    <input id="installmentCount" name="installmentCount" type="number" min="2" max="60" value="2" required />
+                  </div>
+                </div>
+                <div class="form-columns">
+                  <div class="form-row">
+                    <label for="installmentStartMonth">Mês inicial</label>
+                    <input id="installmentStartMonth" name="installmentStartMonth" type="month" required />
+                  </div>
+                  <div class="form-row">
+                    <label for="installmentCategory">Categoria</label>
+                    <select id="installmentCategory" name="installmentCategory" required></select>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label for="installmentAccount">Conta</label>
+                  <select id="installmentAccount" name="installmentAccount"></select>
+                </div>
+                <div class="form-row">
+                  <label for="installmentNotes">Observação</label>
+                  <textarea id="installmentNotes" name="installmentNotes" rows="2"></textarea>
+                </div>
+                <button class="primary-button" type="submit">Criar parcelas</button>
+              </form>
+
+              <section class="panel list-panel" aria-labelledby="installmentListTitle">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Histórico</p>
+                    <h3 id="installmentListTitle">Compras parceladas</h3>
+                  </div>
+                </div>
+                <div id="installmentList" class="compact-list"></div>
+              </section>
+            </section>
+
+            <section class="content-grid planning-grid">
+              <form id="goalForm" class="panel form-panel" autocomplete="off">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Objetivos</p>
+                    <h3>Meta financeira</h3>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label for="goalName">Nome</label>
+                  <input id="goalName" name="goalName" type="text" required />
+                </div>
+                <div class="form-columns">
+                  <div class="form-row">
+                    <label for="goalTarget">Valor alvo em R$</label>
+                    <input id="goalTarget" name="goalTarget" type="number" min="0.01" step="0.01" />
+                  </div>
+                  <div class="form-row">
+                    <label for="goalTargetPercent">Alvo em % da renda</label>
+                    <input id="goalTargetPercent" name="goalTargetPercent" type="number" min="0" step="0.1" placeholder="Ex.: 100" />
+                  </div>
+                </div>
+                <div class="form-columns">
+                  <div class="form-row">
+                    <label for="goalCurrent">Valor atual em R$</label>
+                    <input id="goalCurrent" name="goalCurrent" type="number" min="0" step="0.01" value="0" />
+                  </div>
+                  <div class="form-row">
+                    <label for="goalCurrentPercent">Atual em % da renda</label>
+                    <input id="goalCurrentPercent" name="goalCurrentPercent" type="number" min="0" step="0.1" placeholder="Ex.: 25" />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label for="goalDueDate">Prazo</label>
+                  <input id="goalDueDate" name="goalDueDate" type="date" />
+                </div>
+                <button class="primary-button" type="submit">Salvar meta</button>
+              </form>
+
+              <section class="panel list-panel" aria-labelledby="goalsListTitle">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Progresso</p>
+                    <h3 id="goalsListTitle">Metas financeiras</h3>
+                  </div>
+                </div>
+                <div id="goalsList" class="compact-list"></div>
+              </section>
             </section>
           </section>
 
@@ -329,6 +557,11 @@
                   </div>
                 </div>
 
+                <div class="form-row">
+                  <label for="categoryVisuals">Ícones e cores das categorias</label>
+                  <textarea id="categoryVisuals" name="categoryVisuals" rows="6" placeholder="Moradia | 🏠 | #0f766e"></textarea>
+                </div>
+
                 <div class="button-row">
                   <button class="primary-button" type="submit">
                     <span class="icon" aria-hidden="true">
@@ -374,6 +607,37 @@
         </div>
       </main>
     </div>
+
+    <section id="setupGate" class="setup-gate hidden" aria-labelledby="setupTitle">
+      <form id="setupForm" class="setup-card" autocomplete="off">
+        <p class="eyebrow">Primeiro acesso</p>
+        <h2 id="setupTitle">Configuração inicial</h2>
+        <div class="form-row">
+          <label for="setupName">Nome</label>
+          <input id="setupName" name="setupName" type="text" maxlength="40" />
+        </div>
+        <div class="form-columns">
+          <div class="form-row">
+            <label for="setupGoal">Objetivo</label>
+            <select id="setupGoal" name="setupGoal">
+              <option value="Controlar gastos">Controlar gastos</option>
+              <option value="Guardar dinheiro">Guardar dinheiro</option>
+              <option value="Quitar dívidas">Quitar dívidas</option>
+              <option value="Organizar renda variável">Organizar renda variável</option>
+              <option value="Planejar uma compra">Planejar uma compra</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="setupIncome">Renda base mensal</label>
+            <input id="setupIncome" name="setupIncome" type="number" min="0" step="0.01" />
+          </div>
+        </div>
+        <div class="button-row">
+          <button class="primary-button" type="submit">Salvar configuração</button>
+          <button class="ghost-button" id="skipSetupBtn" type="button">Depois</button>
+        </div>
+      </form>
+    </section>
 
     <section id="printReport" class="print-report" aria-hidden="true"></section>
 
