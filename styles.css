@@ -587,6 +587,8 @@ tbody tr:hover {
   border-radius: var(--radius);
   background: #ffffff;
   color: #344054;
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .row-action:hover {
@@ -682,6 +684,68 @@ tbody tr:hover {
   padding: 10px;
 }
 
+.future-flow-panel {
+  display: grid;
+}
+
+.future-flow-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.future-flow-month {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.future-flow-month.negative {
+  border-color: rgba(220, 38, 38, 0.28);
+}
+
+.future-flow-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.future-flow-header small,
+.future-flow-details small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.future-flow-metrics,
+.future-flow-details {
+  display: grid;
+  gap: 6px;
+}
+
+.future-flow-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.future-flow-metrics span,
+.future-flow-details span {
+  padding: 8px;
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+  color: #344054;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.future-flow-details strong {
+  display: block;
+  margin-top: 2px;
+}
+
 .planning-hero {
   display: grid;
 }
@@ -715,6 +779,13 @@ tbody tr:hover {
   gap: 8px;
   margin-left: auto;
   text-align: right;
+}
+
+.compact-actions .row-action,
+.goal-item .row-action {
+  width: auto;
+  min-width: 34px;
+  padding: 0 10px;
 }
 
 .compact-value {
@@ -991,6 +1062,7 @@ tbody tr:hover {
 :root[data-theme="dark"] .ghost-button,
 :root[data-theme="dark"] .legend-item,
 :root[data-theme="dark"] .budget-item,
+:root[data-theme="dark"] .future-flow-month,
 :root[data-theme="dark"] .compact-item,
 :root[data-theme="dark"] .goal-item,
 :root[data-theme="dark"] .annual-month,
@@ -1009,6 +1081,8 @@ tbody tr:hover {
 
 :root[data-theme="dark"] .profile-preview,
 :root[data-theme="dark"] .progress,
+:root[data-theme="dark"] .future-flow-metrics span,
+:root[data-theme="dark"] .future-flow-details span,
 :root[data-theme="dark"] .segmented {
   background: var(--surface-muted);
 }
@@ -1016,7 +1090,9 @@ tbody tr:hover {
 :root[data-theme="dark"] .form-row label,
 :root[data-theme="dark"] .color-field legend,
 :root[data-theme="dark"] td,
-:root[data-theme="dark"] .budget-item-header {
+:root[data-theme="dark"] .budget-item-header,
+:root[data-theme="dark"] .future-flow-metrics span,
+:root[data-theme="dark"] .future-flow-details span {
   color: #dbe4ef;
 }
 
@@ -1090,6 +1166,7 @@ tbody tr:hover {
   }
 
   .annual-month-list,
+  .future-flow-list,
   .mini-metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1108,6 +1185,7 @@ tbody tr:hover {
   .form-columns,
   .advanced-filters,
   .annual-month-list,
+  .future-flow-list,
   .mini-metric-grid {
     grid-template-columns: 1fr;
   }

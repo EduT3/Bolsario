@@ -119,7 +119,11 @@ const elements = {
   budgetSummary: document.querySelector("#budgetSummary"),
   archiveMonthBtn: document.querySelector("#archiveMonthBtn"),
   archiveList: document.querySelector("#archiveList"),
+  futureFlowSummary: document.querySelector("#futureFlowSummary"),
+  futureFlowList: document.querySelector("#futureFlowList"),
   recurringForm: document.querySelector("#recurringForm"),
+  recurringFormTitle: document.querySelector("#recurringFormTitle"),
+  recurringEditingId: document.querySelector("#recurringEditingId"),
   recurringType: document.querySelector("#recurringType"),
   recurringDay: document.querySelector("#recurringDay"),
   recurringDescription: document.querySelector("#recurringDescription"),
@@ -128,9 +132,13 @@ const elements = {
   recurringCategory: document.querySelector("#recurringCategory"),
   recurringAccount: document.querySelector("#recurringAccount"),
   recurringNotes: document.querySelector("#recurringNotes"),
+  recurringSubmitBtn: document.querySelector("#recurringSubmitBtn"),
+  cancelRecurringEditBtn: document.querySelector("#cancelRecurringEditBtn"),
   generateRecurringBtn: document.querySelector("#generateRecurringBtn"),
   recurringList: document.querySelector("#recurringList"),
   installmentForm: document.querySelector("#installmentForm"),
+  installmentFormTitle: document.querySelector("#installmentFormTitle"),
+  installmentEditingId: document.querySelector("#installmentEditingId"),
   installmentDescription: document.querySelector("#installmentDescription"),
   installmentTotal: document.querySelector("#installmentTotal"),
   installmentCount: document.querySelector("#installmentCount"),
@@ -138,14 +146,20 @@ const elements = {
   installmentCategory: document.querySelector("#installmentCategory"),
   installmentAccount: document.querySelector("#installmentAccount"),
   installmentNotes: document.querySelector("#installmentNotes"),
+  installmentSubmitBtn: document.querySelector("#installmentSubmitBtn"),
+  cancelInstallmentEditBtn: document.querySelector("#cancelInstallmentEditBtn"),
   installmentList: document.querySelector("#installmentList"),
   goalForm: document.querySelector("#goalForm"),
+  goalFormTitle: document.querySelector("#goalFormTitle"),
+  goalEditingId: document.querySelector("#goalEditingId"),
   goalName: document.querySelector("#goalName"),
   goalTarget: document.querySelector("#goalTarget"),
   goalTargetPercent: document.querySelector("#goalTargetPercent"),
   goalCurrent: document.querySelector("#goalCurrent"),
   goalCurrentPercent: document.querySelector("#goalCurrentPercent"),
   goalDueDate: document.querySelector("#goalDueDate"),
+  goalSubmitBtn: document.querySelector("#goalSubmitBtn"),
+  cancelGoalEditBtn: document.querySelector("#cancelGoalEditBtn"),
   goalsList: document.querySelector("#goalsList"),
   profileForm: document.querySelector("#profileForm"),
   personName: document.querySelector("#personName"),
@@ -300,6 +314,35 @@ function dateForMonthDay(monthValue, day) {
   const validValue = isValidMonth(monthValue) ? monthValue : getCurrentMonth();
   const cleanDay = Math.min(Math.max(Number(day) || 1, 1), daysInMonth(validValue));
   return `${validValue}-${String(cleanDay).padStart(2, "0")}`;
+}
+
+function monthIndex(monthValue) {
+  const validValue = isValidMonth(monthValue) ? monthValue : getCurrentMonth();
+  const [year, month] = validValue.split("-").map(Number);
+  return year * 12 + month - 1;
+}
+
+function installmentAmountForIndex(plan, index) {
+  const totalCents = Math.round(Number(plan.totalAmount) * 100);
+  const count = Math.max(Math.round(Number(plan.installments) || 0), 1);
+  if (!Number.isFinite(totalCents) || totalCents <= 0 || index < 0 || index >= count) return 0;
+
+  const baseCents = Math.floor(totalCents / count);
+  const remainder = totalCents - baseCents * count;
+  return (baseCents + (index < remainder ? 1 : 0)) / 100;
+}
+
+function monthsUntilDate(dateValue) {
+  if (!isValidISODate(dateValue)) return 0;
+
+  const [year, month, day] = dateValue.split("-").map(Number);
+  const [todayYear, todayMonth, todayDay] = getTodayISO().split("-").map(Number);
+  const due = new Date(year, month - 1, day);
+  const today = new Date(todayYear, todayMonth - 1, todayDay);
+  if (due < today) return 0;
+
+  const diffDays = Math.max(1, Math.ceil((due - today) / 86400000));
+  return Math.max(1, Math.ceil(diffDays / 30.4375));
 }
 
 function uid() {
@@ -738,10 +781,17 @@ function renderAccountOptions(selected = "") {
   return renderOptions(accounts, selected);
 }
 
-function populateCategorySelects(selectedCategory = elements.category.value, selectedBudgetCategory = elements.budgetCategory.value) {
+function populateCategorySelects(
+  selectedCategory = elements.category.value,
+  selectedBudgetCategory = elements.budgetCategory.value,
+  selectedRecurringCategory = elements.recurringCategory.value,
+  selectedInstallmentCategory = elements.installmentCategory.value
+) {
   const type = selectedType();
   const cleanSelectedCategory = String(selectedCategory || "").trim();
   const cleanSelectedBudgetCategory = String(selectedBudgetCategory || "").trim();
+  const cleanSelectedRecurringCategory = String(selectedRecurringCategory || "").trim();
+  const cleanSelectedInstallmentCategory = String(selectedInstallmentCategory || "").trim();
 
   elements.category.innerHTML = renderOptions(getCategories(type), cleanSelectedCategory);
   if (cleanSelectedCategory) elements.category.value = cleanSelectedCategory;
@@ -749,8 +799,10 @@ function populateCategorySelects(selectedCategory = elements.category.value, sel
   elements.budgetCategory.innerHTML = renderOptions([...getCategories("expense"), ...Object.keys(state.budgets)], cleanSelectedBudgetCategory);
   if (cleanSelectedBudgetCategory) elements.budgetCategory.value = cleanSelectedBudgetCategory;
 
-  elements.recurringCategory.innerHTML = renderOptions(getCategories(elements.recurringType.value), elements.recurringCategory.value);
-  elements.installmentCategory.innerHTML = renderOptions(getCategories("expense"), elements.installmentCategory.value);
+  elements.recurringCategory.innerHTML = renderOptions(getCategories(elements.recurringType.value), cleanSelectedRecurringCategory);
+  if (cleanSelectedRecurringCategory) elements.recurringCategory.value = cleanSelectedRecurringCategory;
+  elements.installmentCategory.innerHTML = renderOptions(getCategories("expense"), cleanSelectedInstallmentCategory);
+  if (cleanSelectedInstallmentCategory) elements.installmentCategory.value = cleanSelectedInstallmentCategory;
   elements.recurringAccount.innerHTML = renderAccountOptions(elements.recurringAccount.value);
   elements.installmentAccount.innerHTML = renderAccountOptions(elements.installmentAccount.value || "Cartão de crédito");
 }
@@ -1248,6 +1300,28 @@ function renderBudgets(transactions) {
   });
 }
 
+function getBudgetAlertMessage(transaction) {
+  if (transaction.type !== "expense") return "";
+
+  const limit = Number(state.budgets[transaction.category]);
+  if (!Number.isFinite(limit) || limit <= 0) return "";
+
+  const month = transaction.date.slice(0, 7);
+  const spending = expensesByCategory(state.transactions.filter((item) => item.date.startsWith(month)));
+  const used = spending[transaction.category] || 0;
+  const percent = Math.round((used / limit) * 100);
+
+  if (percent >= 100) {
+    return `${transaction.category} estourou o orçamento: ${percent}% usado.`;
+  }
+
+  if (percent >= 80) {
+    return `${transaction.category} já usou ${percent}% do orçamento.`;
+  }
+
+  return "";
+}
+
 function render() {
   const monthTransactions = getMonthTransactions();
   const summary = summarize(monthTransactions);
@@ -1262,6 +1336,7 @@ function render() {
   renderInstallments();
   renderGoals();
   renderArchives();
+  renderFutureFlow();
 }
 
 function resetForm() {
@@ -1280,6 +1355,7 @@ function handleTransactionSubmit(event) {
   const type = selectedType();
   const amount = Number(formData.get("amount"));
   const date = String(formData.get("date"));
+  const wasEditing = Boolean(elements.editingId.value);
   const transaction = {
     id: elements.editingId.value || uid(),
     type,
@@ -1303,15 +1379,15 @@ function handleTransactionSubmit(event) {
 
   if (elements.editingId.value) {
     state.transactions = state.transactions.map((item) => (item.id === transaction.id ? transaction : item));
-    showToast("Lançamento atualizado.");
   } else {
     state.transactions.push(transaction);
-    showToast("Lançamento salvo.");
   }
 
+  const budgetAlert = getBudgetAlertMessage(transaction);
   saveState();
   resetForm();
   render();
+  showToast(budgetAlert || (wasEditing ? "Lançamento atualizado." : "Lançamento salvo."));
 }
 
 function handleTableClick(event) {
@@ -1392,6 +1468,115 @@ function handleBudgetListClick(event) {
   render();
 }
 
+function buildFutureFlowMonth(month) {
+  const items = [];
+
+  state.recurring
+    .filter((item) => item.active)
+    .forEach((item) => {
+      items.push({
+        type: item.type,
+        description: item.description,
+        amount: Number(item.amount),
+        category: item.category,
+        origin: "Recorrente",
+      });
+    });
+
+  state.installments.forEach((plan) => {
+    const index = monthIndex(month) - monthIndex(plan.startMonth);
+    const amount = installmentAmountForIndex(plan, index);
+    if (amount <= 0) return;
+    items.push({
+      type: "expense",
+      description: `${plan.description} (${index + 1}/${plan.installments})`,
+      amount,
+      category: plan.category,
+      origin: "Parcela",
+    });
+  });
+
+  state.transactions
+    .filter((transaction) => transaction.source === "manual")
+    .filter((transaction) => transaction.date.startsWith(month))
+    .filter((transaction) => transaction.date >= getTodayISO())
+    .forEach((transaction) => {
+      items.push({
+        type: transaction.type,
+        description: transaction.description,
+        amount: Number(transaction.amount),
+        category: transaction.category,
+        origin: "Agendado",
+      });
+    });
+
+  const income = items.filter((item) => item.type === "income").reduce((sum, item) => sum + item.amount, 0);
+  const expense = items.filter((item) => item.type === "expense").reduce((sum, item) => sum + item.amount, 0);
+
+  return {
+    month,
+    items: items.sort((a, b) => b.amount - a.amount),
+    income,
+    expense,
+    balance: income - expense,
+  };
+}
+
+function renderFutureFlow() {
+  const startMonth = isValidMonth(elements.monthFilter.value) ? elements.monthFilter.value : getCurrentMonth();
+  const projections = Array.from({ length: 6 }, (_, index) => buildFutureFlowMonth(addMonths(startMonth, index)));
+  const totalBalance = projections.reduce((sum, item) => sum + item.balance, 0);
+  const hasItems = projections.some((projection) => projection.items.length);
+
+  elements.futureFlowSummary.textContent = `${projections.length} meses • ${currency(totalBalance)}`;
+  elements.futureFlowList.innerHTML = "";
+
+  if (!hasItems) {
+    elements.futureFlowList.innerHTML = `
+      <div class="empty-state">
+        <strong>Nenhum fluxo fixo previsto.</strong>
+        <span>Cadastre recorrentes, parcelas ou lançamentos futuros para projetar os próximos meses.</span>
+      </div>
+    `;
+    return;
+  }
+
+  projections.forEach((projection) => {
+    const detailItems = projection.items.slice(0, 4);
+    const hiddenCount = projection.items.length - detailItems.length;
+    const row = document.createElement("article");
+    row.className = `future-flow-month${projection.balance < 0 ? " negative" : ""}`;
+    row.innerHTML = `
+      <div class="future-flow-header">
+        <div>
+          <strong>${monthLabel(projection.month)}</strong>
+          <small>${projection.items.length} movimento${projection.items.length === 1 ? "" : "s"} previsto${projection.items.length === 1 ? "" : "s"}</small>
+        </div>
+        <span class="${projection.balance < 0 ? "amount-expense" : "amount-income"}">${currency(projection.balance)}</span>
+      </div>
+      <div class="future-flow-metrics">
+        <span>Entradas ${currency(projection.income)}</span>
+        <span>Saídas ${currency(projection.expense)}</span>
+      </div>
+      <div class="future-flow-details">
+        ${detailItems
+          .map(
+            (item) => `
+              <span>
+                <small>${escapeHtml(item.origin)}</small>
+                ${escapeHtml(item.description)}
+                <strong>${item.type === "income" ? "+" : "-"} ${currency(item.amount)}</strong>
+              </span>
+            `
+          )
+          .join("")}
+        ${hiddenCount > 0 ? `<span><small>Outros</small>+${hiddenCount} movimento${hiddenCount === 1 ? "" : "s"}</span>` : ""}
+      </div>
+    `;
+    elements.futureFlowList.appendChild(row);
+  });
+}
+
 function transactionExistsForRecurring(recurringId, month) {
   return state.transactions.some((transaction) => transaction.recurringId === recurringId && transaction.date.startsWith(month));
 }
@@ -1427,6 +1612,34 @@ function generateRecurringForMonth(month = elements.monthFilter.value || getCurr
   showToast(created ? `${created} recorrente${created === 1 ? "" : "s"} gerado${created === 1 ? "" : "s"}.` : "Nenhum recorrente pendente.");
 }
 
+function resetRecurringForm() {
+  elements.recurringForm.reset();
+  elements.recurringEditingId.value = "";
+  elements.recurringDay.value = "1";
+  elements.recurringFormTitle.textContent = "Recorrentes";
+  elements.recurringSubmitBtn.textContent = "Salvar recorrente";
+  elements.cancelRecurringEditBtn.classList.add("hidden");
+  populateCategorySelects();
+}
+
+function fillRecurringForm(item) {
+  elements.recurringEditingId.value = item.id;
+  elements.recurringType.value = item.type;
+  elements.recurringDay.value = item.day;
+  elements.recurringDescription.value = item.description;
+  elements.recurringAmount.value = item.amount;
+  elements.recurringPercent.value = "";
+  elements.recurringNotes.value = item.notes || "";
+  populateCategorySelects(elements.category.value, elements.budgetCategory.value, item.category);
+  elements.recurringCategory.value = item.category;
+  elements.recurringAccount.innerHTML = renderAccountOptions(item.account);
+  elements.recurringAccount.value = item.account;
+  elements.recurringFormTitle.textContent = "Editar recorrente";
+  elements.recurringSubmitBtn.textContent = "Atualizar recorrente";
+  elements.cancelRecurringEditBtn.classList.remove("hidden");
+  elements.recurringForm.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function handleRecurringSubmit(event) {
   event.preventDefault();
   const formData = new FormData(elements.recurringForm);
@@ -1446,8 +1659,10 @@ function handleRecurringSubmit(event) {
     return;
   }
 
-  state.recurring.push({
-    id: uid(),
+  const editingId = elements.recurringEditingId.value;
+  const existing = state.recurring.find((item) => item.id === editingId);
+  const recurring = {
+    id: existing ? existing.id : uid(),
     type: formData.get("recurringType") === "income" ? "income" : "expense",
     description: String(formData.get("recurringDescription")).trim(),
     amount,
@@ -1455,16 +1670,20 @@ function handleRecurringSubmit(event) {
     account: String(formData.get("recurringAccount") || "Conta corrente"),
     day: Math.min(Math.max(Math.round(day), 1), 31),
     notes: String(formData.get("recurringNotes") || "").trim(),
-    active: true,
-    createdAt: getTodayISO(),
-  });
+    active: existing ? existing.active : true,
+    createdAt: existing ? existing.createdAt : getTodayISO(),
+  };
 
-  elements.recurringForm.reset();
-  elements.recurringDay.value = "1";
+  if (existing) {
+    state.recurring = state.recurring.map((item) => (item.id === editingId ? recurring : item));
+  } else {
+    state.recurring.push(recurring);
+  }
+
+  resetRecurringForm();
   saveState();
-  populateCategorySelects();
   render();
-  showToast("Recorrente salvo.");
+  showToast(existing ? "Recorrente atualizado." : "Recorrente salvo.");
 }
 
 function handleRecurringListClick(event) {
@@ -1476,10 +1695,14 @@ function handleRecurringListClick(event) {
 
   if (button.dataset.recurringAction === "toggle") {
     item.active = !item.active;
+  } else if (button.dataset.recurringAction === "edit") {
+    fillRecurringForm(item);
+    return;
   } else if (button.dataset.recurringAction === "delete") {
     const confirmed = window.confirm(`Excluir recorrente "${item.description}"?`);
     if (!confirmed) return;
     state.recurring = state.recurring.filter((recurring) => recurring.id !== id);
+    if (elements.recurringEditingId.value === id) resetRecurringForm();
   }
 
   saveState();
@@ -1507,6 +1730,7 @@ function renderRecurring() {
           <strong>${currency(item.amount)}</strong>
           ${recurringIncomeLabel ? `<small>${escapeHtml(recurringIncomeLabel)}</small>` : ""}
         </div>
+        <button class="row-action" type="button" title="Editar" data-recurring-action="edit" data-id="${escapeHtml(item.id)}">Editar</button>
         <button class="row-action" type="button" title="${item.active ? "Pausar" : "Ativar"}" data-recurring-action="toggle" data-id="${escapeHtml(item.id)}">${item.active ? "||" : "▶"}</button>
         <button class="row-action" type="button" title="Excluir" data-recurring-action="delete" data-id="${escapeHtml(item.id)}">×</button>
       </div>
@@ -1542,6 +1766,34 @@ function createInstallmentTransactions(plan) {
   });
 }
 
+function resetInstallmentForm() {
+  elements.installmentForm.reset();
+  elements.installmentEditingId.value = "";
+  elements.installmentCount.value = "2";
+  elements.installmentStartMonth.value = getCurrentMonth();
+  elements.installmentFormTitle.textContent = "Compra parcelada";
+  elements.installmentSubmitBtn.textContent = "Criar parcelas";
+  elements.cancelInstallmentEditBtn.classList.add("hidden");
+  populateCategorySelects();
+}
+
+function fillInstallmentForm(plan) {
+  elements.installmentEditingId.value = plan.id;
+  elements.installmentDescription.value = plan.description;
+  elements.installmentTotal.value = plan.totalAmount;
+  elements.installmentCount.value = plan.installments;
+  elements.installmentStartMonth.value = plan.startMonth;
+  elements.installmentNotes.value = plan.notes || "";
+  populateCategorySelects(elements.category.value, elements.budgetCategory.value, elements.recurringCategory.value, plan.category);
+  elements.installmentCategory.value = plan.category;
+  elements.installmentAccount.innerHTML = renderAccountOptions(plan.account);
+  elements.installmentAccount.value = plan.account;
+  elements.installmentFormTitle.textContent = "Editar compra parcelada";
+  elements.installmentSubmitBtn.textContent = "Atualizar parcelas";
+  elements.cancelInstallmentEditBtn.classList.remove("hidden");
+  elements.installmentForm.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function handleInstallmentSubmit(event) {
   event.preventDefault();
   const formData = new FormData(elements.installmentForm);
@@ -1554,8 +1806,10 @@ function handleInstallmentSubmit(event) {
     return;
   }
 
+  const editingId = elements.installmentEditingId.value;
+  const existing = state.installments.find((item) => item.id === editingId);
   const plan = {
-    id: uid(),
+    id: existing ? existing.id : uid(),
     description: String(formData.get("installmentDescription")).trim(),
     totalAmount,
     installments: Math.min(Math.max(Math.round(installments), 2), 60),
@@ -1563,18 +1817,23 @@ function handleInstallmentSubmit(event) {
     account: String(formData.get("installmentAccount") || "Cartão de crédito"),
     startMonth,
     notes: String(formData.get("installmentNotes") || "").trim(),
-    createdAt: getTodayISO(),
+    createdAt: existing ? existing.createdAt : getTodayISO(),
   };
 
-  state.installments.push(plan);
+  if (existing) {
+    const confirmed = window.confirm("Atualizar esta compra vai recriar as parcelas ligadas a ela. Continuar?");
+    if (!confirmed) return;
+    state.installments = state.installments.map((item) => (item.id === editingId ? plan : item));
+    state.transactions = state.transactions.filter((transaction) => transaction.installmentId !== editingId);
+  } else {
+    state.installments.push(plan);
+  }
+
   createInstallmentTransactions(plan);
-  elements.installmentForm.reset();
-  elements.installmentCount.value = "2";
-  elements.installmentStartMonth.value = getCurrentMonth();
+  resetInstallmentForm();
   saveState();
-  populateCategorySelects();
   render();
-  showToast("Parcelas criadas.");
+  showToast(existing ? "Compra parcelada atualizada." : "Parcelas criadas.");
 }
 
 function handleInstallmentListClick(event) {
@@ -1583,10 +1842,17 @@ function handleInstallmentListClick(event) {
   const id = button.dataset.id;
   const plan = state.installments.find((item) => item.id === id);
   if (!plan) return;
+
+  if (button.dataset.installmentAction === "edit") {
+    fillInstallmentForm(plan);
+    return;
+  }
+
   const confirmed = window.confirm(`Excluir compra parcelada "${plan.description}" e suas parcelas?`);
   if (!confirmed) return;
   state.installments = state.installments.filter((item) => item.id !== id);
   state.transactions = state.transactions.filter((transaction) => transaction.installmentId !== id);
+  if (elements.installmentEditingId.value === id) resetInstallmentForm();
   saveState();
   render();
 }
@@ -1608,11 +1874,42 @@ function renderInstallments() {
       </div>
       <div class="compact-actions">
         <strong>${currency(item.totalAmount)}</strong>
+        <button class="row-action" type="button" title="Editar" data-installment-action="edit" data-id="${escapeHtml(item.id)}">Editar</button>
         <button class="row-action" type="button" title="Excluir" data-installment-action="delete" data-id="${escapeHtml(item.id)}">×</button>
       </div>
     `;
     elements.installmentList.appendChild(row);
   });
+}
+
+function resetGoalForm() {
+  elements.goalForm.reset();
+  elements.goalEditingId.value = "";
+  elements.goalCurrent.value = "0";
+  elements.goalFormTitle.textContent = "Meta financeira";
+  elements.goalSubmitBtn.textContent = "Salvar meta";
+  elements.cancelGoalEditBtn.classList.add("hidden");
+}
+
+function fillGoalForm(goal) {
+  elements.goalEditingId.value = goal.id;
+  elements.goalName.value = goal.name;
+  elements.goalTarget.value = goal.target;
+  elements.goalTargetPercent.value = "";
+  elements.goalCurrent.value = goal.current;
+  elements.goalCurrentPercent.value = "";
+  elements.goalDueDate.value = goal.dueDate || "";
+  elements.goalFormTitle.textContent = "Editar meta financeira";
+  elements.goalSubmitBtn.textContent = "Atualizar meta";
+  elements.cancelGoalEditBtn.classList.remove("hidden");
+  elements.goalForm.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function monthlyGoalContribution(goal) {
+  const remaining = Math.max(Number(goal.target) - Number(goal.current), 0);
+  const months = monthsUntilDate(goal.dueDate);
+  if (!remaining || !months) return 0;
+  return roundMoney(remaining / months);
 }
 
 function handleGoalSubmit(event) {
@@ -1638,20 +1935,27 @@ function handleGoalSubmit(event) {
     return;
   }
 
-  state.goals.push({
-    id: uid(),
+  const editingId = elements.goalEditingId.value;
+  const existing = state.goals.find((item) => item.id === editingId);
+  const goal = {
+    id: existing ? existing.id : uid(),
     name: String(formData.get("goalName")).trim(),
     target,
     current: Number.isFinite(current) && current > 0 ? current : 0,
     dueDate,
-    createdAt: getTodayISO(),
-  });
+    createdAt: existing ? existing.createdAt : getTodayISO(),
+  };
 
-  elements.goalForm.reset();
-  elements.goalCurrent.value = "0";
+  if (existing) {
+    state.goals = state.goals.map((item) => (item.id === editingId ? goal : item));
+  } else {
+    state.goals.push(goal);
+  }
+
+  resetGoalForm();
   saveState();
   render();
-  showToast("Meta salva.");
+  showToast(existing ? "Meta atualizada." : "Meta salva.");
 }
 
 function handleGoalsListClick(event) {
@@ -1661,10 +1965,16 @@ function handleGoalsListClick(event) {
   const goal = state.goals.find((item) => item.id === id);
   if (!goal) return;
 
+  if (button.dataset.goalAction === "edit") {
+    fillGoalForm(goal);
+    return;
+  }
+
   if (button.dataset.goalAction === "delete") {
     const confirmed = window.confirm(`Excluir meta "${goal.name}"?`);
     if (!confirmed) return;
     state.goals = state.goals.filter((item) => item.id !== id);
+    if (elements.goalEditingId.value === id) resetGoalForm();
   }
 
   saveState();
@@ -1682,17 +1992,21 @@ function renderGoals() {
     const percent = Math.min(Math.round((goal.current / goal.target) * 100), 100);
     const currentIncomeLabel = incomePercentLabel(goal.current);
     const targetIncomeLabel = incomePercentLabel(goal.target);
+    const monthlyContribution = monthlyGoalContribution(goal);
     const row = document.createElement("article");
     row.className = "goal-item";
     row.innerHTML = `
       <div class="budget-item-header">
         <span class="budget-item-title">${escapeHtml(goal.name)}</span>
-        <button class="row-action" type="button" title="Excluir" data-goal-action="delete" data-id="${escapeHtml(goal.id)}">×</button>
+        <div class="row-actions">
+          <button class="row-action" type="button" title="Editar" data-goal-action="edit" data-id="${escapeHtml(goal.id)}">Editar</button>
+          <button class="row-action" type="button" title="Excluir" data-goal-action="delete" data-id="${escapeHtml(goal.id)}">×</button>
+        </div>
       </div>
       <div class="progress" aria-label="${percent}% concluído">
         <div class="progress-bar" style="width:${percent}%"></div>
       </div>
-      <small>${currency(goal.current)}${currentIncomeLabel ? ` (${escapeHtml(currentIncomeLabel)})` : ""} de ${currency(goal.target)}${targetIncomeLabel ? ` (${escapeHtml(targetIncomeLabel)})` : ""}${goal.dueDate ? ` • ${shortDate(goal.dueDate)}` : ""}</small>
+      <small>${currency(goal.current)}${currentIncomeLabel ? ` (${escapeHtml(currentIncomeLabel)})` : ""} de ${currency(goal.target)}${targetIncomeLabel ? ` (${escapeHtml(targetIncomeLabel)})` : ""}${goal.dueDate ? ` • ${shortDate(goal.dueDate)}` : ""}${monthlyContribution ? ` • guardar ${currency(monthlyContribution)}/mês` : ""}</small>
     `;
     elements.goalsList.appendChild(row);
   });
@@ -1985,11 +2299,14 @@ function bindEvents() {
   elements.archiveMonthBtn.addEventListener("click", archiveCurrentMonth);
   elements.recurringType.addEventListener("change", () => populateCategorySelects());
   elements.recurringForm.addEventListener("submit", handleRecurringSubmit);
+  elements.cancelRecurringEditBtn.addEventListener("click", resetRecurringForm);
   elements.generateRecurringBtn.addEventListener("click", () => generateRecurringForMonth());
   elements.recurringList.addEventListener("click", handleRecurringListClick);
   elements.installmentForm.addEventListener("submit", handleInstallmentSubmit);
+  elements.cancelInstallmentEditBtn.addEventListener("click", resetInstallmentForm);
   elements.installmentList.addEventListener("click", handleInstallmentListClick);
   elements.goalForm.addEventListener("submit", handleGoalSubmit);
+  elements.cancelGoalEditBtn.addEventListener("click", resetGoalForm);
   elements.goalsList.addEventListener("click", handleGoalsListClick);
   elements.profileForm.addEventListener("submit", handleProfileSubmit);
   elements.resetPersonBtn.addEventListener("click", resetForNewPerson);

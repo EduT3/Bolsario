@@ -317,15 +317,27 @@
               <div id="archiveList" class="archive-list"></div>
             </section>
 
+            <section class="panel future-flow-panel" aria-labelledby="futureFlowTitle">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Próximos meses</p>
+                  <h3 id="futureFlowTitle">Fluxo fixo previsto</h3>
+                </div>
+                <span class="pill" id="futureFlowSummary">0 meses</span>
+              </div>
+              <div id="futureFlowList" class="future-flow-list"></div>
+            </section>
+
             <section class="content-grid planning-grid">
               <form id="recurringForm" class="panel form-panel" autocomplete="off">
                 <div class="panel-heading">
                   <div>
                     <p class="eyebrow">Automático</p>
-                    <h3>Recorrentes</h3>
+                    <h3 id="recurringFormTitle">Recorrentes</h3>
                   </div>
                   <button class="ghost-button" id="generateRecurringBtn" type="button">Gerar mês</button>
                 </div>
+                <input id="recurringEditingId" name="recurringEditingId" type="hidden" />
                 <div class="form-columns">
                   <div class="form-row">
                     <label for="recurringType">Tipo</label>
@@ -365,7 +377,10 @@
                   <label for="recurringNotes">Observação</label>
                   <textarea id="recurringNotes" name="recurringNotes" rows="2"></textarea>
                 </div>
-                <button class="primary-button" type="submit">Salvar recorrente</button>
+                <div class="button-row">
+                  <button class="primary-button" id="recurringSubmitBtn" type="submit">Salvar recorrente</button>
+                  <button class="ghost-button hidden" id="cancelRecurringEditBtn" type="button">Cancelar edição</button>
+                </div>
               </form>
 
               <section class="panel list-panel" aria-labelledby="recurringListTitle">
@@ -384,9 +399,10 @@
                 <div class="panel-heading">
                   <div>
                     <p class="eyebrow">Parcelas</p>
-                    <h3>Compra parcelada</h3>
+                    <h3 id="installmentFormTitle">Compra parcelada</h3>
                   </div>
                 </div>
+                <input id="installmentEditingId" name="installmentEditingId" type="hidden" />
                 <div class="form-row">
                   <label for="installmentDescription">Descrição</label>
                   <input id="installmentDescription" name="installmentDescription" type="text" required />
@@ -419,7 +435,10 @@
                   <label for="installmentNotes">Observação</label>
                   <textarea id="installmentNotes" name="installmentNotes" rows="2"></textarea>
                 </div>
-                <button class="primary-button" type="submit">Criar parcelas</button>
+                <div class="button-row">
+                  <button class="primary-button" id="installmentSubmitBtn" type="submit">Criar parcelas</button>
+                  <button class="ghost-button hidden" id="cancelInstallmentEditBtn" type="button">Cancelar edição</button>
+                </div>
               </form>
 
               <section class="panel list-panel" aria-labelledby="installmentListTitle">
@@ -438,9 +457,10 @@
                 <div class="panel-heading">
                   <div>
                     <p class="eyebrow">Objetivos</p>
-                    <h3>Meta financeira</h3>
+                    <h3 id="goalFormTitle">Meta financeira</h3>
                   </div>
                 </div>
+                <input id="goalEditingId" name="goalEditingId" type="hidden" />
                 <div class="form-row">
                   <label for="goalName">Nome</label>
                   <input id="goalName" name="goalName" type="text" required />
@@ -469,7 +489,10 @@
                   <label for="goalDueDate">Prazo</label>
                   <input id="goalDueDate" name="goalDueDate" type="date" />
                 </div>
-                <button class="primary-button" type="submit">Salvar meta</button>
+                <div class="button-row">
+                  <button class="primary-button" id="goalSubmitBtn" type="submit">Salvar meta</button>
+                  <button class="ghost-button hidden" id="cancelGoalEditBtn" type="button">Cancelar edição</button>
+                </div>
               </form>
 
               <section class="panel list-panel" aria-labelledby="goalsListTitle">
