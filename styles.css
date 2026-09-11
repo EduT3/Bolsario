@@ -14,6 +14,7 @@
   --good: #15803d;
   --violet: #6d28d9;
   --shadow: 0 16px 40px rgba(29, 41, 57, 0.08);
+  --shadow-soft: 0 8px 24px rgba(29, 41, 57, 0.07);
   --radius: 8px;
   --sidebar: 280px;
   font-family:
@@ -49,8 +50,8 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background:
-    linear-gradient(135deg, rgba(15, 118, 110, 0.08), transparent 34%),
-    linear-gradient(315deg, rgba(180, 83, 9, 0.08), transparent 30%),
+    linear-gradient(135deg, rgba(15, 118, 110, 0.09), rgba(37, 99, 235, 0.04) 38%, transparent 58%),
+    linear-gradient(315deg, rgba(180, 83, 9, 0.08), rgba(109, 40, 217, 0.04) 35%, transparent 62%),
     var(--bg);
   color: var(--ink);
 }
@@ -91,7 +92,10 @@ svg {
   gap: 28px;
   height: 100vh;
   padding: 24px;
-  background: #111827;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(15, 118, 110, 0.18), transparent 34%),
+    #111827;
   color: #f8fafc;
 }
 
@@ -159,6 +163,10 @@ svg {
 .nav-item.active {
   background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
+}
+
+.nav-item.active {
+  box-shadow: inset 3px 0 0 var(--primary);
 }
 
 .sidebar-note {
@@ -297,10 +305,37 @@ textarea:focus {
 }
 
 .metric-card {
+  position: relative;
   display: grid;
   gap: 9px;
   min-height: 128px;
   padding: 18px;
+  overflow: hidden;
+}
+
+.metric-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: var(--primary);
+}
+
+.metric-card:nth-child(2)::before {
+  background: var(--income);
+}
+
+.metric-card:nth-child(3)::before {
+  background: var(--expense);
+}
+
+.metric-card:nth-child(4)::before {
+  background: var(--good);
+}
+
+.metric-card:hover,
+.panel:hover {
+  box-shadow: var(--shadow-soft);
 }
 
 .metric-card span,
@@ -550,8 +585,25 @@ td {
   font-size: 0.93rem;
 }
 
+td small {
+  color: var(--muted);
+}
+
 tbody tr:hover {
   background: #f9fafb;
+}
+
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  margin-right: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: #344054;
+  font-size: 0.72rem;
+  font-weight: 900;
 }
 
 .number-cell {
@@ -1081,6 +1133,7 @@ tbody tr:hover {
 
 :root[data-theme="dark"] .profile-preview,
 :root[data-theme="dark"] .progress,
+:root[data-theme="dark"] .source-badge,
 :root[data-theme="dark"] .future-flow-metrics span,
 :root[data-theme="dark"] .future-flow-details span,
 :root[data-theme="dark"] .segmented {
@@ -1091,6 +1144,7 @@ tbody tr:hover {
 :root[data-theme="dark"] .color-field legend,
 :root[data-theme="dark"] td,
 :root[data-theme="dark"] .budget-item-header,
+:root[data-theme="dark"] .source-badge,
 :root[data-theme="dark"] .future-flow-metrics span,
 :root[data-theme="dark"] .future-flow-details span {
   color: #dbe4ef;

@@ -453,6 +453,15 @@ function categoryLabel(category) {
   return `${meta.icon} ${category}`;
 }
 
+function sourceLabel(source) {
+  const labels = {
+    recurring: "Recorrente",
+    installment: "Parcela",
+    manual: "Manual",
+  };
+  return labels[source] || "Manual";
+}
+
 function slug(value) {
   const filename = String(value || DEFAULT_APP_NAME)
     .normalize("NFD")
@@ -1095,6 +1104,9 @@ function resetForNewPerson() {
   };
   saveState();
   resetForm();
+  resetRecurringForm();
+  resetInstallmentForm();
+  resetGoalForm();
   fillProfileForm();
   updateBranding();
   render();
@@ -1230,11 +1242,12 @@ function renderTransactions() {
     const row = document.createElement("tr");
     const amountClass = transaction.type === "income" ? "amount-income" : "amount-expense";
     const sign = transaction.type === "income" ? "+" : "-";
+    const originLabel = sourceLabel(transaction.source);
     row.innerHTML = `
       <td>${shortDate(transaction.date)}</td>
       <td>
         <strong>${escapeHtml(transaction.description)}</strong>
-        ${transaction.notes ? `<br><small>${escapeHtml(transaction.notes)}</small>` : ""}
+        <br><small><span class="source-badge">${escapeHtml(originLabel)}</span>${transaction.notes ? ` ${escapeHtml(transaction.notes)}` : ""}</small>
       </td>
       <td>${escapeHtml(categoryLabel(transaction.category))}</td>
       <td>${escapeHtml(transaction.account)}</td>
@@ -1356,6 +1369,7 @@ function handleTransactionSubmit(event) {
   const amount = Number(formData.get("amount"));
   const date = String(formData.get("date"));
   const wasEditing = Boolean(elements.editingId.value);
+  const existingTransaction = wasEditing ? state.transactions.find((item) => item.id === elements.editingId.value) : null;
   const transaction = {
     id: elements.editingId.value || uid(),
     type,
@@ -1365,11 +1379,11 @@ function handleTransactionSubmit(event) {
     account: String(formData.get("account")),
     date,
     notes: String(formData.get("notes") || "").trim(),
-    recurringId: "",
-    installmentId: "",
-    installmentNumber: "",
-    installmentTotal: "",
-    source: "manual",
+    recurringId: existingTransaction?.recurringId || "",
+    installmentId: existingTransaction?.installmentId || "",
+    installmentNumber: existingTransaction?.installmentNumber || "",
+    installmentTotal: existingTransaction?.installmentTotal || "",
+    source: existingTransaction?.source || "manual",
   };
 
   if (!transaction.description || !Number.isFinite(transaction.amount) || transaction.amount <= 0 || !isValidISODate(transaction.date)) {
@@ -2233,6 +2247,7 @@ function importJson(file) {
       fillProfileForm();
       updateBranding();
       populateCategorySelects();
+      updateSetupGate();
       const compatibility = backup.schemaVersion > BACKUP_SCHEMA_VERSION ? " em modo compatibilidade" : "";
       showToast(`Backup importado${compatibility}.`);
       render();
