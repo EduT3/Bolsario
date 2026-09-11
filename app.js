@@ -67,6 +67,12 @@ const elements = {
   topbarEyebrow: document.querySelector("#topbarEyebrow"),
   topbarTitle: document.querySelector("#topbarTitle"),
   monthFilter: document.querySelector("#monthFilter"),
+  previousMonthBtn: document.querySelector("#previousMonthBtn"),
+  nextMonthBtn: document.querySelector("#nextMonthBtn"),
+  currentMonthBtn: document.querySelector("#currentMonthBtn"),
+  quickAddBtn: document.querySelector("#quickAddBtn"),
+  backupBtn: document.querySelector("#backupBtn"),
+  monthComparison: document.querySelector("#monthComparison"),
   exportBtn: document.querySelector("#exportBtn"),
   pdfBtn: document.querySelector("#pdfBtn"),
   importBtn: document.querySelector("#importBtn"),
@@ -109,6 +115,16 @@ const elements = {
   endDateFilter: document.querySelector("#endDateFilter"),
   searchFilter: document.querySelector("#searchFilter"),
   clearFiltersBtn: document.querySelector("#clearFiltersBtn"),
+  sortFilter: document.querySelector("#sortFilter"),
+  filteredExportBtn: document.querySelector("#filteredExportBtn"),
+  filterError: document.querySelector("#filterError"),
+  filterPeriod: document.querySelector("#filterPeriod"),
+  filteredSummary: document.querySelector("#filteredSummary"),
+  emptyStateHint: document.querySelector("#emptyStateHint"),
+  previousPageBtn: document.querySelector("#previousPageBtn"),
+  nextPageBtn: document.querySelector("#nextPageBtn"),
+  pageInfo: document.querySelector("#pageInfo"),
+  transactionPagination: document.querySelector("#transactionPagination"),
   transactionRows: document.querySelector("#transactionRows"),
   emptyState: document.querySelector("#emptyState"),
   budgetForm: document.querySelector("#budgetForm"),
@@ -184,10 +200,15 @@ const elements = {
   setupIncome: document.querySelector("#setupIncome"),
   skipSetupBtn: document.querySelector("#skipSetupBtn"),
   toast: document.querySelector("#toast"),
+  toastMessage: document.querySelector("#toastMessage"),
+  toastUndoBtn: document.querySelector("#toastUndoBtn"),
 };
 
 let state = loadState();
 let chartFrame = 0;
+let transactionPage = 1;
+const TRANSACTIONS_PER_PAGE = 20;
+let undoTransaction = null;
 
 function getTodayISO() {
   const now = new Date();
@@ -235,7 +256,9 @@ function hasInputValue(value) {
 
 function roundMoney(value) {
   const amount = Number(value);
-  return Number.isFinite(amount) ? Math.round(amount * 100) / 100 : Number.NaN;
+  if (!Number.isFinite(amount)) return Number.NaN;
+  const magnitude = Math.abs(amount);
+  return Math.sign(amount) * Math.round((magnitude + Number.EPSILON * magnitude) * 100) / 100;
 }
 
 function getMonthlyIncomeValue() {
@@ -485,15 +508,15 @@ function normalizeTransaction(transaction = {}) {
     id: normalizeId(transaction.id),
     type: transaction.type === "income" ? "income" : "expense",
     description: String(transaction.description || "").trim() || "Lançamento importado",
-    amount: Number.isFinite(amount) && amount > 0 ? amount : 0,
+    amount: Number.isFinite(amount) && amount > 0 ? roundMoney(amount) : 0,
     category: String(transaction.category || "Outros").trim() || "Outros",
     account: String(transaction.account || "Não informada").trim() || "Não informada",
     date: hasValidDate ? date : getTodayISO(),
     notes: String(transaction.notes || "").trim(),
     recurringId: transaction.recurringId ? normalizeId(transaction.recurringId) : "",
     installmentId: transaction.installmentId ? normalizeId(transaction.installmentId) : "",
-    installmentNumber: Number.isFinite(Number(transaction.installmentNumber)) ? Number(transaction.installmentNumber) : "",
-    installmentTotal: Number.isFinite(Number(transaction.installmentTotal)) ? Number(transaction.installmentTotal) : "",
+    installmentNumber: hasInputValue(transaction.installmentNumber) && Number.isFinite(Number(transaction.installmentNumber)) ? Number(transaction.installmentNumber) : "",
+    installmentTotal: hasInputValue(transaction.installmentTotal) && Number.isFinite(Number(transaction.installmentTotal)) ? Number(transaction.installmentTotal) : "",
     source: ["manual", "recurring", "installment"].includes(transaction.source) ? transaction.source : "manual",
   };
 }
@@ -641,6 +664,9 @@ function extractBackupData(payload) {
   }
 
   const isVersionedBackup = payload.format === BACKUP_FORMAT;
+  if (isVersionedBackup && (!Number.isInteger(payload.schemaVersion) || payload.schemaVersion < 1 || payload.schemaVersion > BACKUP_SCHEMA_VERSION)) {
+    throw new Error("Este backup usa uma versão não suportada. Atualize o Bolsário antes de importar.");
+  }
   const data = isVersionedBackup ? payload.data : payload;
 
   if (!data || typeof data !== "object" || Array.isArray(data) || !Array.isArray(data.transactions)) {
@@ -762,6 +788,37 @@ function setActiveView(viewName) {
   if (activeView === "resumo") {
     queueCategoryChartDraw();
   }
+  const titles = { resumo: "Visão do mês", lancamentos: "Lançamentos", orcamento: "Orçamento", planejamento: "Planejamento", perfil: "Seu perfil" };
+  elements.topbarTitle.textContent = titles[activeView];
+}
+
+function changeMonth(month) {
+  if (!isValidMonth(month) || month < "0100-01" || month > "9998-12") return;
+  elements.monthFilter.value = month;
+  elements.startDateFilter.value = "";
+  elements.endDateFilter.value = "";
+  transactionPage = 1;
+  if (!elements.editingId.value && !elements.description.value.trim()) elements.date.value = defaultTransactionDate();
+  render();
+}
+
+function defaultTransactionDate() {
+  const month = elements.monthFilter.value || getCurrentMonth();
+  return month === getCurrentMonth() ? getTodayISO() : `${month}-01`;
+}
+
+function openTransactionForm() {
+  history.pushState(null, "", "#lancamentos");
+  setActiveView("lancamentos");
+  elements.transactionForm.scrollIntoView({ behavior: "smooth", block: "start" });
+  elements.description.focus({ preventScroll: true });
+}
+
+function startNewTransaction() {
+  const hasDraft = elements.editingId.value || elements.description.value.trim() || elements.amount.value || elements.notes.value.trim();
+  if (hasDraft && !window.confirm("Descartar o formulário atual e começar um novo lançamento?")) return;
+  resetForm();
+  openTransactionForm();
 }
 
 function queueCategoryChartDraw(transactions = getMonthTransactions()) {
@@ -814,6 +871,7 @@ function populateCategorySelects(
   if (cleanSelectedInstallmentCategory) elements.installmentCategory.value = cleanSelectedInstallmentCategory;
   elements.recurringAccount.innerHTML = renderAccountOptions(elements.recurringAccount.value);
   elements.installmentAccount.innerHTML = renderAccountOptions(elements.installmentAccount.value || "Cartão de crédito");
+  elements.account.innerHTML = renderAccountOptions(elements.account.value);
 }
 
 function populateFilters() {
@@ -841,8 +899,10 @@ function getFilteredTransactions() {
   const account = elements.accountFilter.value;
   const startDate = elements.startDateFilter.value;
   const endDate = elements.endDateFilter.value;
-  const query = elements.searchFilter.value.trim().toLowerCase();
+  const searchable = (value) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const query = searchable(elements.searchFilter.value.trim());
   const hasDateRange = isValidISODate(startDate) || isValidISODate(endDate);
+  if (startDate && endDate && startDate > endDate) return [];
 
   return (hasDateRange ? state.transactions : getMonthTransactions())
     .filter((transaction) => type === "all" || transaction.type === type)
@@ -852,25 +912,30 @@ function getFilteredTransactions() {
     .filter((transaction) => !isValidISODate(endDate) || transaction.date <= endDate)
     .filter((transaction) => {
       if (!query) return true;
-      return [transaction.description, transaction.category, transaction.account, transaction.notes]
-        .join(" ")
-        .toLowerCase()
-        .includes(query);
+      return searchable([transaction.description, transaction.category, transaction.account, transaction.notes].join(" ")).includes(query);
     })
-    .sort((a, b) => b.date.localeCompare(a.date));
+    .sort((a, b) => {
+      switch (elements.sortFilter.value) {
+        case "date-asc": return a.date.localeCompare(b.date);
+        case "amount-desc": return b.amount - a.amount || b.date.localeCompare(a.date);
+        case "amount-asc": return a.amount - b.amount || b.date.localeCompare(a.date);
+        case "description": return a.description.localeCompare(b.description, "pt-BR");
+        default: return b.date.localeCompare(a.date);
+      }
+    });
 }
 
 function summarize(transactions) {
   const income = transactions
     .filter((transaction) => transaction.type === "income")
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
+    .reduce((sum, transaction) => sum + Math.round(transaction.amount * 100), 0) / 100;
   const expense = transactions
     .filter((transaction) => transaction.type === "expense")
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
+    .reduce((sum, transaction) => sum + Math.round(transaction.amount * 100), 0) / 100;
   return {
     income,
     expense,
-    balance: income - expense,
+    balance: roundMoney(income - expense),
     incomeCount: transactions.filter((transaction) => transaction.type === "income").length,
     expenseCount: transactions.filter((transaction) => transaction.type === "expense").length,
     savingRate: income > 0 ? Math.round(((income - expense) / income) * 100) : 0,
@@ -895,7 +960,11 @@ function updateAnnualSummary() {
   elements.annualMonthList.innerHTML = "";
   Array.from({ length: 12 }, (_, index) => `${year}-${String(index + 1).padStart(2, "0")}`).forEach((month) => {
     const monthSummary = summarize(state.transactions.filter((transaction) => transaction.date.startsWith(month)));
-    const item = document.createElement("article");
+    const item = document.createElement("button");
+    item.type = "button";
+    item.dataset.month = month;
+    item.setAttribute("aria-label", `Ver ${monthLabel(month)}`);
+    item.setAttribute("aria-pressed", String(month === elements.monthFilter.value));
     item.className = "annual-month";
     item.innerHTML = `
       <strong>${monthLabel(month).replace(` de ${year}`, "")}</strong>
@@ -912,16 +981,31 @@ function updateMetrics(summary) {
   elements.expenseValue.textContent = currency(summary.expense);
   elements.savingRateValue.textContent = `${summary.savingRate}%`;
 
-  elements.balanceHint.textContent = summary.balance >= 0 ? "Fechamento positivo" : "Atenção ao caixa";
+  elements.balanceHint.textContent = !summary.incomeCount && !summary.expenseCount ? "Sem lançamentos neste mês" : summary.balance >= 0 ? "Resultado positivo" : "Atenção ao caixa";
   elements.incomeHint.textContent = `${summary.incomeCount} ${summary.incomeCount === 1 ? "lançamento" : "lançamentos"}`;
   elements.expenseHint.textContent = `${summary.expenseCount} ${summary.expenseCount === 1 ? "lançamento" : "lançamentos"}`;
-  elements.savingHint.textContent = summary.savingRate >= 20 ? "Boa margem de economia" : "Tente mirar em 20%";
+  elements.savingHint.textContent = summary.income > 0 ? "Saldo em relação às entradas" : "Sem entradas registradas";
+}
+
+function renderMonthComparison(summary) {
+  const previousMonth = addMonths(elements.monthFilter.value || getCurrentMonth(), -1);
+  const previousTransactions = state.transactions.filter((item) => item.date.startsWith(previousMonth));
+  const previous = summarize(previousTransactions);
+  elements.monthComparison.innerHTML = [
+    ["income", "Entradas"], ["expense", "Gastos"], ["balance", "Saldo"],
+  ].map(([key, label]) => {
+    const delta = roundMoney(summary[key] - previous[key]);
+    const favorable = key === "expense" ? delta < 0 : delta > 0;
+    const detail = !previousTransactions.length ? "Sem registros no mês anterior" : delta === 0 ? "Sem alteração" : `${delta > 0 ? "+" : "−"}${currency(Math.abs(delta))} vs. ${monthLabel(previousMonth)}`;
+    return `<div><span>${label}</span><strong class="${previousTransactions.length && delta !== 0 ? favorable ? "amount-income" : "amount-expense" : ""}">${escapeHtml(detail)}</strong></div>`;
+  }).join("");
 }
 
 function updateInsight(summary) {
   const profile = getProfile();
   const budgetTotal = Object.values(state.budgets).reduce((sum, value) => sum + Number(value || 0), 0);
-  const budgetUsed = summary.expense;
+  const spending = expensesByCategory(getMonthTransactions());
+  const budgetUsed = Object.keys(state.budgets).reduce((sum, category) => sum + (spending[category] || 0), 0);
   const budgetRatio = budgetTotal > 0 ? Math.round((budgetUsed / budgetTotal) * 100) : 0;
   const monthlyIncome = Number(profile.monthlyIncome || 0);
 
@@ -976,7 +1060,7 @@ function updateBranding() {
   elements.appNameLabel.textContent = appName;
   elements.brandTitle.textContent = profile.personName ? `Controle de ${profile.personName}` : "Controle pessoal";
   elements.topbarEyebrow.textContent = profile.personName ? `Painel financeiro de ${profile.personName}` : "Painel financeiro pessoal";
-  elements.topbarTitle.textContent = goalHeadlines[profile.goal] || goalHeadlines["Controlar gastos"];
+  setActiveView(getViewFromHash());
   applyTheme(profile);
   updateProfilePreview(profile);
 }
@@ -1103,6 +1187,7 @@ function resetForNewPerson() {
     archives: [],
   };
   saveState();
+  undoTransaction = null;
   resetForm();
   resetRecurringForm();
   resetInstallmentForm();
@@ -1162,62 +1247,62 @@ function expensesByCategory(transactions) {
 function drawCategoryChart(transactions) {
   const canvas = elements.categoryChart;
   const ctx = canvas.getContext("2d");
+  if (!ctx || !canvas.getBoundingClientRect().width) return;
   const ratio = window.devicePixelRatio || 1;
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = Math.max(320, Math.floor(rect.width * ratio));
-  canvas.height = Math.floor(280 * ratio);
-  ctx.scale(ratio, ratio);
-  ctx.clearRect(0, 0, rect.width, 280);
-
   const entries = Object.entries(expensesByCategory(transactions)).sort((a, b) => b[1] - a[1]);
+  const visibleEntries = entries.slice(0, 7);
+  const height = Math.max(96, visibleEntries.length * 52 + 12);
+  canvas.style.height = `${height}px`;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = Math.floor(rect.width * ratio);
+  canvas.height = Math.floor(height * ratio);
+  ctx.scale(ratio, ratio);
+  ctx.clearRect(0, 0, rect.width, height);
+  const theme = getComputedStyle(document.documentElement);
   elements.categoryLegend.innerHTML = "";
 
   if (!entries.length) {
     elements.topCategory.textContent = "Sem dados";
-    ctx.fillStyle = "#667085";
-    ctx.font = "700 15px system-ui, sans-serif";
+    ctx.fillStyle = theme.getPropertyValue("--muted").trim();
+    ctx.font = "500 13px system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("Sem gastos no mês selecionado", rect.width / 2, 135);
+    ctx.fillText("Sem gastos no mês selecionado", rect.width / 2, 48, rect.width - 16);
     return;
   }
 
   const total = entries.reduce((sum, [, value]) => sum + value, 0);
   const max = Math.max(...entries.map(([, value]) => value));
-  const left = 126;
-  const right = 22;
-  const top = 18;
-  const barHeight = 26;
-  const gap = 16;
-  const width = Math.max(120, rect.width - left - right);
+  const width = Math.max(1, rect.width - 2);
 
   elements.topCategory.textContent = `${entries[0][0]} ${Math.round((entries[0][1] / total) * 100)}%`;
 
-  entries.slice(0, 7).forEach(([category, value], index) => {
-    const y = top + index * (barHeight + gap);
+  visibleEntries.forEach(([category, value], index) => {
+    const y = 8 + index * 52;
     const barWidth = (value / max) * width;
     const color = getCategoryMeta(category).color || palette[index % palette.length];
 
-    ctx.fillStyle = "#344054";
+    ctx.fillStyle = theme.getPropertyValue("--ink").trim();
     ctx.font = "700 12px system-ui, sans-serif";
+    ctx.textAlign = "left";
+    const amountLabel = currency(value);
+    const maxLabelWidth = Math.max(40, width - ctx.measureText(amountLabel).width - 20);
+    let label = category;
+    while (label.length > 1 && ctx.measureText(label).width > maxLabelWidth) label = label.slice(0, -1);
+    ctx.fillText(label === category ? label : `${label.slice(0, -1)}…`, 0, y + 12, maxLabelWidth);
     ctx.textAlign = "right";
-    ctx.fillText(category, left - 12, y + 18);
+    ctx.fillText(amountLabel, width, y + 12, width - maxLabelWidth - 10);
 
-    ctx.fillStyle = "#eef2f4";
-    roundRect(ctx, left, y, width, barHeight, 6);
+    ctx.fillStyle = theme.getPropertyValue("--surface-muted").trim();
+    roundRect(ctx, 0, y + 24, width, 8, 4);
     ctx.fill();
 
     ctx.fillStyle = color;
-    roundRect(ctx, left, y, Math.max(6, barWidth), barHeight, 6);
+    roundRect(ctx, 0, y + 24, Math.max(2, barWidth), 8, 4);
     ctx.fill();
-
-    ctx.fillStyle = "#171923";
-    ctx.textAlign = "left";
-    ctx.font = "800 12px system-ui, sans-serif";
-    ctx.fillText(currency(value), left + Math.min(barWidth + 10, width - 70), y + 18);
 
     const item = document.createElement("span");
     item.className = "legend-item";
-    item.innerHTML = `<span class="legend-swatch" style="background:${color}"></span>${escapeHtml(categoryLabel(category))}`;
+    item.innerHTML = `<span class="legend-swatch" style="background:${color}"></span>${escapeHtml(categoryLabel(category))}: ${currency(value)}`;
     elements.categoryLegend.appendChild(item);
   });
 }
@@ -1235,30 +1320,48 @@ function roundRect(ctx, x, y, width, height, radius) {
 
 function renderTransactions() {
   const transactions = getFilteredTransactions();
+  const summary = summarize(transactions);
+  const start = elements.startDateFilter.value;
+  const end = elements.endDateFilter.value;
+  const invalidRange = Boolean(start && end && start > end);
+  elements.filterError.classList.toggle("hidden", !invalidRange);
+  elements.filteredExportBtn.disabled = !transactions.length;
+  elements.filterPeriod.textContent = start || end ? `${start ? shortDate(start) : "Início"} até ${end ? shortDate(end) : "hoje e futuros"}` : monthLabel(elements.monthFilter.value);
+  elements.filteredSummary.innerHTML = `<span><strong>${transactions.length}</strong> ${transactions.length === 1 ? "lançamento" : "lançamentos"}</span><span>Entradas <strong class="amount-income">${currency(summary.income)}</strong></span><span>Gastos <strong class="amount-expense">${currency(summary.expense)}</strong></span><span>Saldo <strong>${currency(summary.balance)}</strong></span>`;
+  const totalPages = Math.max(1, Math.ceil(transactions.length / TRANSACTIONS_PER_PAGE));
+  transactionPage = Math.max(1, Math.min(transactionPage, totalPages));
+  const offset = (transactionPage - 1) * TRANSACTIONS_PER_PAGE;
+  elements.pageInfo.textContent = transactions.length ? `${offset + 1}–${Math.min(offset + TRANSACTIONS_PER_PAGE, transactions.length)} de ${transactions.length}` : "0 lançamentos";
+  elements.previousPageBtn.disabled = transactionPage === 1;
+  elements.nextPageBtn.disabled = transactionPage === totalPages;
+  elements.transactionPagination.classList.toggle("hidden", !transactions.length);
+  const hasFilters = elements.typeFilter.value !== "all" || elements.categoryFilter.value !== "all" || elements.accountFilter.value !== "all" || start || end || elements.searchFilter.value.trim();
+  elements.emptyStateHint.textContent = invalidRange ? "Verifique o período selecionado." : hasFilters ? "Nenhum resultado para estes filtros." : "Sem lançamentos neste mês.";
   elements.transactionRows.innerHTML = "";
   elements.emptyState.classList.toggle("hidden", transactions.length > 0);
 
-  transactions.forEach((transaction) => {
+  transactions.slice(offset, offset + TRANSACTIONS_PER_PAGE).forEach((transaction) => {
     const row = document.createElement("tr");
     const amountClass = transaction.type === "income" ? "amount-income" : "amount-expense";
     const sign = transaction.type === "income" ? "+" : "-";
     const originLabel = sourceLabel(transaction.source);
     row.innerHTML = `
-      <td>${shortDate(transaction.date)}</td>
-      <td>
+      <td data-label="Data">${shortDate(transaction.date)}</td>
+      <td class="transaction-description" data-label="Descrição">
         <strong>${escapeHtml(transaction.description)}</strong>
         <br><small><span class="source-badge">${escapeHtml(originLabel)}</span>${transaction.notes ? ` ${escapeHtml(transaction.notes)}` : ""}</small>
       </td>
-      <td>${escapeHtml(categoryLabel(transaction.category))}</td>
-      <td>${escapeHtml(transaction.account)}</td>
-      <td class="number-cell ${amountClass}">${sign} ${currency(transaction.amount)}</td>
-      <td class="action-cell">
+      <td data-label="Categoria">${escapeHtml(categoryLabel(transaction.category))}</td>
+      <td data-label="Conta">${escapeHtml(transaction.account)}</td>
+      <td data-label="Valor" class="number-cell ${amountClass}">${sign} ${currency(transaction.amount)}</td>
+      <td data-label="Ações" class="action-cell">
         <div class="row-actions">
-          <button class="row-action" type="button" title="Editar" aria-label="Editar" data-action="edit" data-id="${escapeHtml(transaction.id)}">
-            <svg viewBox="0 0 24 24"><path d="m4 16.7-.7 4 4-.7L18.9 8.4l-3.3-3.3L4 16.7Zm13-13 3.3 3.3 1.2-1.2a2.3 2.3 0 0 0-3.3-3.3L17 3.7Z" /></svg>
+          <button class="row-action" type="button" title="Editar" aria-label="Editar ${escapeHtml(transaction.description)}" data-action="edit" data-id="${escapeHtml(transaction.id)}">
+            ${icon("Pencil")}
           </button>
-          <button class="row-action" type="button" title="Excluir" aria-label="Excluir" data-action="delete" data-id="${escapeHtml(transaction.id)}">
-            <svg viewBox="0 0 24 24"><path d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm4 2v8h2v-8h-2Zm4 0v8h2v-8h-2Z" /></svg>
+          <button class="row-action" type="button" title="Duplicar" aria-label="Duplicar ${escapeHtml(transaction.description)}" data-action="duplicate" data-id="${escapeHtml(transaction.id)}">${icon("Copy")}</button>
+          <button class="row-action" type="button" title="Excluir" aria-label="Excluir ${escapeHtml(transaction.description)}" data-action="delete" data-id="${escapeHtml(transaction.id)}">
+            ${icon("Trash2")}
           </button>
         </div>
       </td>
@@ -1339,6 +1442,10 @@ function render() {
   const monthTransactions = getMonthTransactions();
   const summary = summarize(monthTransactions);
   updateMetrics(summary);
+  renderMonthComparison(summary);
+  elements.previousMonthBtn.disabled = elements.monthFilter.value <= "0100-01";
+  elements.nextMonthBtn.disabled = elements.monthFilter.value >= "9998-12";
+  elements.currentMonthBtn.disabled = elements.monthFilter.value === getCurrentMonth();
   updateInsight(summary);
   updateAnnualSummary();
   drawCategoryChart(monthTransactions);
@@ -1355,21 +1462,25 @@ function render() {
 function resetForm() {
   elements.transactionForm.reset();
   elements.editingId.value = "";
-  elements.date.value = getTodayISO();
+  elements.date.value = defaultTransactionDate();
   elements.typeExpense.checked = true;
   elements.formTitle.textContent = "Adicionar gasto ou entrada";
   elements.cancelEditBtn.classList.add("hidden");
-  populateCategorySelects();
+  populateCategorySelects(getCategories("expense")[0]);
 }
 
 function handleTransactionSubmit(event) {
   event.preventDefault();
   const formData = new FormData(elements.transactionForm);
   const type = selectedType();
-  const amount = Number(formData.get("amount"));
+  const amount = roundMoney(Number(formData.get("amount")));
   const date = String(formData.get("date"));
   const wasEditing = Boolean(elements.editingId.value);
   const existingTransaction = wasEditing ? state.transactions.find((item) => item.id === elements.editingId.value) : null;
+  if (wasEditing && !existingTransaction) {
+    showToast("Este lançamento não existe mais. Cancele a edição e crie um novo.");
+    return;
+  }
   const transaction = {
     id: elements.editingId.value || uid(),
     type,
@@ -1399,6 +1510,8 @@ function handleTransactionSubmit(event) {
 
   const budgetAlert = getBudgetAlertMessage(transaction);
   saveState();
+  elements.monthFilter.value = transaction.date.slice(0, 7);
+  clearTransactionFilters();
   resetForm();
   render();
   showToast(budgetAlert || (wasEditing ? "Lançamento atualizado." : "Lançamento salvo."));
@@ -1415,24 +1528,55 @@ function handleTableClick(event) {
     if (!confirmed) return;
     state.transactions = state.transactions.filter((item) => item.id !== transaction.id);
     saveState();
-    showToast("Lançamento excluído.");
+    if (elements.editingId.value === transaction.id) resetForm();
+    undoTransaction = transaction;
+    showToast("Lançamento excluído.", true);
     render();
     return;
   }
 
-  elements.editingId.value = transaction.id;
-  elements.formTitle.textContent = "Editar lançamento";
+  const duplicating = button.dataset.action === "duplicate";
+  elements.editingId.value = duplicating ? "" : transaction.id;
+  elements.formTitle.textContent = duplicating ? "Duplicar lançamento" : "Editar lançamento";
   elements.cancelEditBtn.classList.remove("hidden");
   elements.typeExpense.checked = transaction.type === "expense";
   elements.typeIncome.checked = transaction.type === "income";
   populateCategorySelects(transaction.category);
   elements.description.value = transaction.description;
   elements.amount.value = transaction.amount;
-  elements.date.value = transaction.date;
+  elements.date.value = duplicating ? defaultTransactionDate() : transaction.date;
   elements.category.value = transaction.category;
-  elements.account.value = transaction.account;
+  elements.account.innerHTML = renderAccountOptions(transaction.account);
   elements.notes.value = transaction.notes || "";
-  elements.transactionForm.scrollIntoView({ behavior: "smooth", block: "start" });
+  openTransactionForm();
+}
+
+function undoTransactionDeletion() {
+  const transaction = undoTransaction;
+  if (!transaction) return;
+  // Generated items may have been recreated after deletion; never restore a second occurrence.
+  const alreadyExists = state.transactions.some((item) => item.id === transaction.id ||
+    (transaction.recurringId && item.recurringId === transaction.recurringId && item.date.slice(0, 7) === transaction.date.slice(0, 7)) ||
+    (transaction.installmentId && item.installmentId === transaction.installmentId && item.installmentNumber === transaction.installmentNumber));
+  if (alreadyExists) {
+    showToast("Este lançamento já foi restaurado ou gerado novamente.");
+    return;
+  }
+  state.transactions.push(transaction);
+  saveState();
+  undoTransaction = null;
+  render();
+  showToast("Exclusão desfeita.");
+}
+
+function clearTransactionFilters() {
+  elements.typeFilter.value = "all";
+  elements.categoryFilter.value = "all";
+  elements.accountFilter.value = "all";
+  elements.startDateFilter.value = "";
+  elements.endDateFilter.value = "";
+  elements.searchFilter.value = "";
+  transactionPage = 1;
 }
 
 function handleBudgetSubmit(event) {
@@ -1753,7 +1897,13 @@ function renderRecurring() {
   });
 }
 
+function isValidInstallmentPlan(plan) {
+  const totalCents = Math.round(roundMoney(plan.totalAmount) * 100);
+  return Number.isSafeInteger(totalCents) && Number.isInteger(plan.installments) && plan.installments >= 2 && plan.installments <= 60 && totalCents >= plan.installments;
+}
+
 function createInstallmentTransactions(plan) {
+  if (!isValidInstallmentPlan(plan)) throw new RangeError("Cada parcela precisa ter pelo menos R$ 0,01.");
   const totalCents = Math.round(plan.totalAmount * 100);
   const baseCents = Math.floor(totalCents / plan.installments);
   const remainder = totalCents - baseCents * plan.installments;
@@ -1811,12 +1961,16 @@ function fillInstallmentForm(plan) {
 function handleInstallmentSubmit(event) {
   event.preventDefault();
   const formData = new FormData(elements.installmentForm);
-  const totalAmount = Number(formData.get("installmentTotal"));
+  const totalAmount = roundMoney(Number(formData.get("installmentTotal")));
   const installments = Number(formData.get("installmentCount"));
   const startMonth = String(formData.get("installmentStartMonth"));
 
   if (!formData.get("installmentDescription") || !Number.isFinite(totalAmount) || totalAmount <= 0 || !Number.isFinite(installments) || installments < 2 || !isValidMonth(startMonth)) {
     showToast("Informe dados válidos para a compra parcelada.");
+    return;
+  }
+  if (!isValidInstallmentPlan({ totalAmount, installments })) {
+    showToast("Use de 2 a 60 parcelas, com pelo menos R$ 0,01 por parcela.");
     return;
   }
 
@@ -2074,10 +2228,10 @@ function renderArchives() {
   });
 }
 
-function exportCsv() {
+function exportCsv(transactions = state.transactions, filtered = false) {
   const rows = [
     ["data", "tipo", "descricao", "categoria", "conta", "valor", "origem", "observacao"],
-    ...state.transactions
+    ...transactions
       .slice()
       .sort((a, b) => a.date.localeCompare(b.date))
       .map((transaction) => [
@@ -2094,11 +2248,14 @@ function exportCsv() {
 
   const csv = `\uFEFF${rows.map((row) => row.map(csvCell).join(";")).join("\n")}`;
   const filenameBase = slug(getAppName());
-  downloadFile(`${filenameBase}-lancamentos-v${CSV_SCHEMA_VERSION}-${getTodayISO()}.csv`, csv, "text/csv;charset=utf-8");
+  downloadFile(`${filenameBase}-${filtered ? "filtrados" : "lancamentos"}-v${CSV_SCHEMA_VERSION}-${getTodayISO()}.csv`, csv, "text/csv;charset=utf-8");
+  showToast(`CSV exportado: ${transactions.length} lançamentos.`);
+}
 
+function exportBackup() {
   const backup = JSON.stringify(createBackupPayload(), null, 2);
-  setTimeout(() => downloadFile(`${filenameBase}-backup-v${BACKUP_SCHEMA_VERSION}-${getTodayISO()}.json`, backup, "application/json"), 250);
-  showToast("Exportei CSV e backup JSON.");
+  downloadFile(`${slug(getAppName())}-backup-v${BACKUP_SCHEMA_VERSION}-${getTodayISO()}.json`, backup, "application/json");
+  showToast("Backup completo exportado.");
 }
 
 function exportPdf() {
@@ -2141,7 +2298,7 @@ function exportPdf() {
         categoryEntries.map(([category, value]) => [
           escapeHtml(category),
           currency(value),
-          `${Math.round((value / Math.max(summary.expense, 1)) * 100)}%`,
+          `${summary.expense > 0 ? Math.round((value / summary.expense) * 100) : 0}%`,
         ]),
         "Sem gastos no mês selecionado."
       )}
@@ -2242,20 +2399,31 @@ function importJson(file) {
     try {
       const parsed = JSON.parse(String(reader.result));
       const backup = extractBackupData(parsed);
+      if (!window.confirm(`Importar backup com ${backup.state.transactions.length} lançamentos? Os dados atuais serão substituídos. Cancele para baixar um backup antes.`)) return;
+      // Persist before replacing the in-memory state so failed writes preserve the current session.
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(backup.state));
       state = backup.state;
-      saveState();
+      undoTransaction = null;
+      clearTransactionFilters();
+      resetForm();
+      resetRecurringForm();
+      resetInstallmentForm();
+      resetGoalForm();
       fillProfileForm();
       updateBranding();
       populateCategorySelects();
       updateSetupGate();
-      const compatibility = backup.schemaVersion > BACKUP_SCHEMA_VERSION ? " em modo compatibilidade" : "";
-      showToast(`Backup importado${compatibility}.`);
+      showToast("Backup importado.");
       render();
-    } catch {
-      showToast("Não consegui importar este arquivo JSON.");
+    } catch (error) {
+      showToast(error instanceof SyntaxError ? "Arquivo JSON inválido. Os dados atuais foram preservados." : error.message || "Não consegui importar este arquivo JSON.");
     } finally {
       elements.importFile.value = "";
     }
+  };
+  reader.onerror = () => {
+    elements.importFile.value = "";
+    showToast("Não foi possível ler o arquivo. Tente novamente.");
   };
   reader.readAsText(file);
 }
@@ -2270,11 +2438,17 @@ function escapeHtml(value) {
 }
 
 let toastTimer;
-function showToast(message) {
+function showToast(message, canUndo = false) {
   clearTimeout(toastTimer);
-  elements.toast.textContent = message;
+  if (!canUndo) undoTransaction = null;
+  elements.toastMessage.textContent = message;
+  elements.toastUndoBtn.classList.toggle("hidden", !canUndo);
   elements.toast.classList.add("show");
-  toastTimer = setTimeout(() => elements.toast.classList.remove("show"), 2600);
+  toastTimer = setTimeout(() => {
+    elements.toast.classList.remove("show");
+    elements.toastUndoBtn.classList.add("hidden");
+    undoTransaction = null;
+  }, canUndo ? 12000 : 5000);
 }
 
 function bindEvents() {
@@ -2284,26 +2458,32 @@ function bindEvents() {
       const view = item.getAttribute("href").replace("#", "");
       history.pushState(null, "", `#${view}`);
       setActiveView(view);
+      window.scrollTo({ top: 0, behavior: "instant" });
     });
   });
   document.querySelectorAll("input[name='type']").forEach((input) => {
-    input.addEventListener("change", populateCategorySelects);
+    input.addEventListener("change", () => populateCategorySelects(getCategories(selectedType())[0]));
   });
   window.addEventListener("hashchange", () => setActiveView(getViewFromHash()));
-  elements.monthFilter.addEventListener("change", render);
-  elements.typeFilter.addEventListener("change", renderTransactions);
-  elements.categoryFilter.addEventListener("change", renderTransactions);
-  elements.accountFilter.addEventListener("change", renderTransactions);
-  elements.startDateFilter.addEventListener("change", renderTransactions);
-  elements.endDateFilter.addEventListener("change", renderTransactions);
-  elements.searchFilter.addEventListener("input", renderTransactions);
+  elements.monthFilter.addEventListener("change", () => changeMonth(elements.monthFilter.value || getCurrentMonth()));
+  elements.previousMonthBtn.addEventListener("click", () => changeMonth(addMonths(elements.monthFilter.value, -1)));
+  elements.nextMonthBtn.addEventListener("click", () => changeMonth(addMonths(elements.monthFilter.value, 1)));
+  elements.currentMonthBtn.addEventListener("click", () => changeMonth(getCurrentMonth()));
+  elements.quickAddBtn.addEventListener("click", startNewTransaction);
+  elements.toastUndoBtn.addEventListener("click", undoTransactionDeletion);
+  elements.annualMonthList.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-month]");
+    if (button) changeMonth(button.dataset.month);
+  });
+  [elements.typeFilter, elements.categoryFilter, elements.accountFilter, elements.startDateFilter, elements.endDateFilter, elements.sortFilter].forEach((input) => {
+    input.addEventListener("change", () => { transactionPage = 1; renderTransactions(); });
+  });
+  elements.searchFilter.addEventListener("input", () => { transactionPage = 1; renderTransactions(); });
+  elements.previousPageBtn.addEventListener("click", () => { transactionPage -= 1; renderTransactions(); });
+  elements.nextPageBtn.addEventListener("click", () => { transactionPage += 1; renderTransactions(); });
   elements.clearFiltersBtn.addEventListener("click", () => {
-    elements.typeFilter.value = "all";
-    elements.categoryFilter.value = "all";
-    elements.accountFilter.value = "all";
-    elements.startDateFilter.value = "";
-    elements.endDateFilter.value = "";
-    elements.searchFilter.value = "";
+    clearTransactionFilters();
+    elements.sortFilter.value = "date-desc";
     renderTransactions();
   });
   elements.transactionForm.addEventListener("submit", handleTransactionSubmit);
@@ -2312,7 +2492,7 @@ function bindEvents() {
   elements.budgetForm.addEventListener("submit", handleBudgetSubmit);
   elements.budgetList.addEventListener("click", handleBudgetListClick);
   elements.archiveMonthBtn.addEventListener("click", archiveCurrentMonth);
-  elements.recurringType.addEventListener("change", () => populateCategorySelects());
+  elements.recurringType.addEventListener("change", () => populateCategorySelects(elements.category.value, elements.budgetCategory.value, getCategories(elements.recurringType.value)[0]));
   elements.recurringForm.addEventListener("submit", handleRecurringSubmit);
   elements.cancelRecurringEditBtn.addEventListener("click", resetRecurringForm);
   elements.generateRecurringBtn.addEventListener("click", () => generateRecurringForMonth());
@@ -2329,7 +2509,9 @@ function bindEvents() {
   elements.profileForm.addEventListener("change", previewProfileFromForm);
   elements.setupForm.addEventListener("submit", handleSetupSubmit);
   elements.skipSetupBtn.addEventListener("click", skipSetup);
-  elements.exportBtn.addEventListener("click", exportCsv);
+  elements.exportBtn.addEventListener("click", () => exportCsv());
+  elements.filteredExportBtn.addEventListener("click", () => exportCsv(getFilteredTransactions(), true));
+  elements.backupBtn.addEventListener("click", exportBackup);
   elements.pdfBtn.addEventListener("click", exportPdf);
   elements.importBtn.addEventListener("click", () => elements.importFile.click());
   elements.importFile.addEventListener("change", (event) => importJson(event.target.files[0]));
@@ -2337,6 +2519,7 @@ function bindEvents() {
 }
 
 function init() {
+  renderIcons();
   elements.monthFilter.value = getCurrentMonth();
   elements.date.value = getTodayISO();
   elements.installmentStartMonth.value = getCurrentMonth();

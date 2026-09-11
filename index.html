@@ -21,31 +21,31 @@
         <nav class="nav-list" aria-label="Seções">
           <a class="nav-item active" href="#resumo">
             <span class="icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm10 7h6V4h-6v16ZM4 20h6v-4H4v4Z" /></svg>
+              <span data-icon="LayoutDashboard"></span>
             </span>
             Resumo
           </a>
           <a class="nav-item" href="#lancamentos">
             <span class="icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M5 4h14v2H5V4Zm0 7h14v2H5v-2Zm0 7h9v2H5v-2Z" /></svg>
+              <span data-icon="List"></span>
             </span>
             Lançamentos
           </a>
           <a class="nav-item" href="#orcamento">
             <span class="icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-7-7V3Zm1 0v10h8A8 8 0 0 0 13 3Z" /></svg>
+              <span data-icon="ChartPie"></span>
             </span>
             Orçamento
           </a>
           <a class="nav-item" href="#planejamento">
             <span class="icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M7 3h2v2h6V3h2v2h3v16H4V5h3V3Zm11 8H6v8h12v-8ZM6 7v2h12V7H6Zm2 6h3v3H8v-3Zm5 0h3v3h-3v-3Z" /></svg>
+              <span data-icon="CalendarDays"></span>
             </span>
             Planejamento
           </a>
           <a class="nav-item" href="#perfil">
             <span class="icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8.6 4a7.8 7.8 0 0 0-.1-1.2l2-1.5-2-3.5-2.4 1a8.6 8.6 0 0 0-2-1.2L15.8 3h-4l-.4 2.6a8.6 8.6 0 0 0-2 1.2l-2.4-1-2 3.5 2 1.5A7.8 7.8 0 0 0 7 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.5 2.4-1a8.6 8.6 0 0 0 2 1.2l.4 2.6h4l.4-2.6a8.6 8.6 0 0 0 2-1.2l2.4 1 2-3.5-2-1.5c.1-.4.1-.8.1-1.2Z" /></svg>
+              <span data-icon="Settings"></span>
             </span>
             Perfil
           </a>
@@ -64,18 +64,26 @@
             <h2 id="topbarTitle">Organize o mês antes que ele organize você.</h2>
           </div>
           <div class="topbar-actions">
-            <label class="select-label" for="monthFilter">Mês</label>
-            <input id="monthFilter" type="month" />
+            <div class="month-picker" role="group" aria-label="Mês de referência">
+              <button class="icon-button" id="previousMonthBtn" type="button" title="Mês anterior" aria-label="Mês anterior"><span data-icon="ChevronLeft"></span></button>
+              <input id="monthFilter" type="month" aria-label="Mês de referência" min="0100-01" max="9998-12" />
+              <button class="icon-button" id="nextMonthBtn" type="button" title="Próximo mês" aria-label="Próximo mês"><span data-icon="ChevronRight"></span></button>
+            </div>
+            <button class="primary-button quick-add" id="quickAddBtn" type="button"><span data-icon="Plus"></span>Novo lançamento</button>
+            <div class="file-actions" role="group" aria-label="Arquivos e atalhos">
+            <button class="icon-button" id="currentMonthBtn" type="button" title="Voltar ao mês atual" aria-label="Voltar ao mês atual"><span data-icon="CalendarDays"></span></button>
+            <button class="icon-button" id="backupBtn" type="button" title="Baixar backup completo (JSON)" aria-label="Baixar backup completo (JSON)"><span data-icon="DatabaseBackup"></span></button>
             <button class="icon-button" id="exportBtn" type="button" title="Exportar CSV" aria-label="Exportar CSV">
-              <svg viewBox="0 0 24 24"><path d="M11 3h2v10l3.5-3.5 1.4 1.4L12 16.8l-5.9-5.9 1.4-1.4L11 13V3ZM5 19h14v2H5v-2Z" /></svg>
+              <span data-icon="Download"></span>
             </button>
             <button class="icon-button" id="pdfBtn" type="button" title="Arquivar em PDF" aria-label="Arquivar em PDF">
-              <svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6V2Zm8 1.8V8h4.2L14 3.8ZM8 13h2.2c1.4 0 2.3-.8 2.3-2s-.9-2-2.3-2H8v6Zm1.5-1.3v-1.4h.6c.5 0 .8.3.8.7s-.3.7-.8.7h-.6ZM13.4 15V9h2c1.8 0 3 1.2 3 3s-1.2 3-3 3h-2Zm1.5-1.4h.4c.9 0 1.5-.6 1.5-1.6s-.6-1.6-1.5-1.6h-.4v3.2Z" /></svg>
+              <span data-icon="FileText"></span>
             </button>
             <button class="icon-button" id="importBtn" type="button" title="Importar JSON" aria-label="Importar JSON">
-              <svg viewBox="0 0 24 24"><path d="M11 21h2V11l3.5 3.5 1.4-1.4L12 7.2l-5.9 5.9 1.4 1.4L11 11v10ZM5 3h14v2H5V3Z" /></svg>
+              <span data-icon="Upload"></span>
             </button>
             <input id="importFile" class="visually-hidden" type="file" accept="application/json,.json" />
+            </div>
           </div>
         </header>
 
@@ -100,10 +108,15 @@
                 <small id="expenseHint">0 lançamento</small>
               </article>
               <article class="metric-card">
-                <span>Meta de economia</span>
+                <span>Taxa de economia</span>
                 <strong id="savingRateValue">0%</strong>
                 <small id="savingHint">Ideal: 20% ou mais</small>
               </article>
+            </section>
+
+            <section class="month-comparison" aria-labelledby="comparisonTitle">
+              <div><p class="eyebrow">Evolução mensal</p><h3 id="comparisonTitle">Em relação ao mês anterior</h3></div>
+              <div id="monthComparison" class="comparison-values"></div>
             </section>
 
             <section class="panel chart-panel" aria-labelledby="chartTitle">
@@ -221,6 +234,8 @@
                     <p class="eyebrow">Histórico</p>
                     <h3 id="transactionsTitle">Lançamentos</h3>
                   </div>
+                  <button class="ghost-button" id="filteredExportBtn" type="button"><span data-icon="Download"></span>CSV filtrado</button>
+                </div>
                   <div class="filter-row advanced-filters">
                     <select id="typeFilter" aria-label="Filtrar por tipo">
                       <option value="all">Todos</option>
@@ -233,12 +248,21 @@
                     <select id="accountFilter" aria-label="Filtrar por conta">
                       <option value="all">Todas contas</option>
                     </select>
-                    <input id="startDateFilter" type="date" aria-label="Data inicial" />
-                    <input id="endDateFilter" type="date" aria-label="Data final" />
-                    <input id="searchFilter" type="search" placeholder="Buscar" aria-label="Buscar lançamentos" />
-                    <button class="ghost-button" id="clearFiltersBtn" type="button">Limpar</button>
+                    <label class="date-filter">De<input id="startDateFilter" type="date" aria-label="Data inicial" /></label>
+                    <label class="date-filter">Até<input id="endDateFilter" type="date" aria-label="Data final" /></label>
+                    <input id="searchFilter" type="search" placeholder="Buscar descrição, categoria..." aria-label="Buscar lançamentos" />
+                    <button class="icon-button" id="clearFiltersBtn" type="button" title="Limpar filtros" aria-label="Limpar filtros"><span data-icon="FilterX"></span></button>
                   </div>
+                <p id="filterError" class="field-error hidden" role="alert">A data final precisa ser igual ou posterior à inicial.</p>
+                <div class="results-toolbar">
+                  <span id="filterPeriod" class="results-period"></span>
+                  <select id="sortFilter" aria-label="Ordenar lançamentos">
+                    <option value="date-desc">Mais recentes</option><option value="date-asc">Mais antigos</option>
+                    <option value="amount-desc">Maior valor</option><option value="amount-asc">Menor valor</option>
+                    <option value="description">Descrição A–Z</option>
+                  </select>
                 </div>
+                <div id="filteredSummary" class="filtered-summary" aria-live="polite"></div>
 
                 <div class="table-wrap">
                   <table>
@@ -257,7 +281,14 @@
                 </div>
                 <div id="emptyState" class="empty-state hidden">
                   <strong>Nenhum lançamento encontrado.</strong>
-                  <span>Ajuste os filtros ou cadastre um novo item.</span>
+                  <span id="emptyStateHint">Sem lançamentos neste mês.</span>
+                </div>
+                <div class="pagination" id="transactionPagination">
+                  <span id="pageInfo" aria-live="polite"></span>
+                  <div class="row-actions">
+                    <button class="icon-button" id="previousPageBtn" type="button" title="Página anterior" aria-label="Página anterior"><span data-icon="ChevronLeft"></span></button>
+                    <button class="icon-button" id="nextPageBtn" type="button" title="Próxima página" aria-label="Próxima página"><span data-icon="ChevronRight"></span></button>
+                  </div>
                 </div>
               </section>
             </section>
@@ -665,8 +696,9 @@
 
     <section id="printReport" class="print-report" aria-hidden="true"></section>
 
-    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <div id="toast" class="toast" role="status" aria-live="polite"><span id="toastMessage"></span><button id="toastUndoBtn" class="toast-undo hidden" type="button"><span data-icon="Undo2"></span>Desfazer</button></div>
 
+    <script src="vendor/icons.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

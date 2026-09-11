@@ -1,0 +1,14 @@
+{
+  "name": "bolsario",
+  "private": true,
+  "description": "Controle financeiro pessoal local",
+  "scripts": {
+    "test": "node --test tests/finance.test.cjs",
+    "test:browser": "node tests/browser.cjs",
+    "build:icons": "node scripts/build-icons.cjs"
+  },
+  "devDependencies": {
+    "lucide": "1.8.0",
+    "playwright": "1.62.1"
+  }
+}
