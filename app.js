@@ -21,8 +21,6 @@ const defaultCategories = {
   income: ["Salário", "Freelance", "Vendas", "Investimentos", "Reembolso", "Outros"],
 };
 
-const palette = ["#0f766e", "#2563eb", "#b45309", "#dc2626", "#6d28d9", "#0891b2", "#15803d", "#be185d", "#475569"];
-
 const accountOptions = ["Carteira", "Conta corrente", "Cartão de crédito", "Pix", "Investimentos"];
 
 const defaultCategoryMeta = {
@@ -105,7 +103,6 @@ const elements = {
   notes: document.querySelector("#notes"),
   typeExpense: document.querySelector("#typeExpense"),
   typeIncome: document.querySelector("#typeIncome"),
-  categoryChart: document.querySelector("#categoryChart"),
   categoryLegend: document.querySelector("#categoryLegend"),
   topCategory: document.querySelector("#topCategory"),
   typeFilter: document.querySelector("#typeFilter"),
@@ -258,7 +255,7 @@ function roundMoney(value) {
   const amount = Number(value);
   if (!Number.isFinite(amount)) return Number.NaN;
   const magnitude = Math.abs(amount);
-  return Math.sign(amount) * Math.round((magnitude + Number.EPSILON * magnitude) * 100) / 100;
+  return (Math.sign(amount) * Math.round((magnitude + Number.EPSILON * magnitude) * 100)) / 100;
 }
 
 function getMonthlyIncomeValue() {
@@ -271,7 +268,10 @@ function resolveAmountFromInputs(amountInput, percentInput) {
     const percent = Number(percentInput);
     const income = getMonthlyIncomeValue();
     return {
-      amount: Number.isFinite(percent) && percent >= 0 && income > 0 ? roundMoney((income * percent) / 100) : Number.NaN,
+      amount:
+        Number.isFinite(percent) && percent >= 0 && income > 0
+          ? roundMoney((income * percent) / 100)
+          : Number.NaN,
       usesPercent: true,
     };
   }
@@ -397,7 +397,10 @@ function normalizeCategoryMeta(meta = {}) {
 
     const fallback = clean[cleanCategory] || { icon: "•", color: "#475569" };
     clean[cleanCategory] = {
-      icon: String(value.icon || fallback.icon || "•").trim().slice(0, 4) || "•",
+      icon:
+        String(value.icon || fallback.icon || "•")
+          .trim()
+          .slice(0, 4) || "•",
       color: isHexColor(value.color) ? String(value.color).trim() : fallback.color,
     };
   });
@@ -427,7 +430,12 @@ function normalizeProfile(profile = {}) {
     profile = {};
   }
   const defaults = createDefaultProfile();
-  const categories = profile.categories && typeof profile.categories === "object" && !Array.isArray(profile.categories) ? profile.categories : {};
+  const categories =
+    profile.categories &&
+    typeof profile.categories === "object" &&
+    !Array.isArray(profile.categories)
+      ? profile.categories
+      : {};
   const monthlyIncome = Number(profile.monthlyIncome);
   const categoryMeta = normalizeCategoryMeta(profile.categoryMeta);
 
@@ -442,8 +450,14 @@ function normalizeProfile(profile = {}) {
     accent: accentMap[profile.accent] ? profile.accent : defaults.accent,
     setupComplete: Boolean(profile.setupComplete),
     categories: {
-      expense: uniqueList(Array.isArray(categories.expense) ? categories.expense : [], defaults.categories.expense),
-      income: uniqueList(Array.isArray(categories.income) ? categories.income : [], defaults.categories.income),
+      expense: uniqueList(
+        Array.isArray(categories.expense) ? categories.expense : [],
+        defaults.categories.expense,
+      ),
+      income: uniqueList(
+        Array.isArray(categories.income) ? categories.income : [],
+        defaults.categories.income,
+      ),
     },
     categoryMeta,
   };
@@ -463,17 +477,23 @@ function getCategories(type) {
 }
 
 function getAllCategories() {
-  return uniqueList([...getCategories("expense"), ...getCategories("income"), ...Object.keys(state.budgets)]);
+  return uniqueList([
+    ...getCategories("expense"),
+    ...getCategories("income"),
+    ...Object.keys(state.budgets),
+  ]);
 }
 
 function getCategoryMeta(category) {
   const profile = getProfile();
-  return profile.categoryMeta[category] || defaultCategoryMeta[category] || { icon: "•", color: "#475569" };
+  return (
+    profile.categoryMeta[category] ||
+    defaultCategoryMeta[category] || { icon: "•", color: "#475569" }
+  );
 }
 
 function categoryLabel(category) {
-  const meta = getCategoryMeta(category);
-  return `${meta.icon} ${category}`;
+  return category;
 }
 
 function sourceLabel(source) {
@@ -515,9 +535,19 @@ function normalizeTransaction(transaction = {}) {
     notes: String(transaction.notes || "").trim(),
     recurringId: transaction.recurringId ? normalizeId(transaction.recurringId) : "",
     installmentId: transaction.installmentId ? normalizeId(transaction.installmentId) : "",
-    installmentNumber: hasInputValue(transaction.installmentNumber) && Number.isFinite(Number(transaction.installmentNumber)) ? Number(transaction.installmentNumber) : "",
-    installmentTotal: hasInputValue(transaction.installmentTotal) && Number.isFinite(Number(transaction.installmentTotal)) ? Number(transaction.installmentTotal) : "",
-    source: ["manual", "recurring", "installment"].includes(transaction.source) ? transaction.source : "manual",
+    installmentNumber:
+      hasInputValue(transaction.installmentNumber) &&
+      Number.isFinite(Number(transaction.installmentNumber))
+        ? Number(transaction.installmentNumber)
+        : "",
+    installmentTotal:
+      hasInputValue(transaction.installmentTotal) &&
+      Number.isFinite(Number(transaction.installmentTotal))
+        ? Number(transaction.installmentTotal)
+        : "",
+    source: ["manual", "recurring", "installment"].includes(transaction.source)
+      ? transaction.source
+      : "manual",
   };
 }
 
@@ -583,7 +613,8 @@ function normalizeInstallments(items) {
       if (!item || typeof item !== "object" || Array.isArray(item)) return null;
       const totalAmount = Number(item.totalAmount);
       const count = Number(item.installments);
-      if (!Number.isFinite(totalAmount) || totalAmount <= 0 || !Number.isFinite(count) || count < 2) return null;
+      if (!Number.isFinite(totalAmount) || totalAmount <= 0 || !Number.isFinite(count) || count < 2)
+        return null;
       return {
         id: normalizeId(item.id),
         description: String(item.description || "").trim() || "Compra parcelada",
@@ -625,7 +656,8 @@ function normalizeArchives(items) {
 
   return items
     .map((item) => {
-      if (!item || typeof item !== "object" || Array.isArray(item) || !isValidMonth(item.month)) return null;
+      if (!item || typeof item !== "object" || Array.isArray(item) || !isValidMonth(item.month))
+        return null;
       return {
         id: normalizeId(item.id),
         month: item.month,
@@ -664,12 +696,24 @@ function extractBackupData(payload) {
   }
 
   const isVersionedBackup = payload.format === BACKUP_FORMAT;
-  if (isVersionedBackup && (!Number.isInteger(payload.schemaVersion) || payload.schemaVersion < 1 || payload.schemaVersion > BACKUP_SCHEMA_VERSION)) {
-    throw new Error("Este backup usa uma versão não suportada. Atualize o Bolsário antes de importar.");
+  if (
+    isVersionedBackup &&
+    (!Number.isInteger(payload.schemaVersion) ||
+      payload.schemaVersion < 1 ||
+      payload.schemaVersion > BACKUP_SCHEMA_VERSION)
+  ) {
+    throw new Error(
+      "Este backup usa uma versão não suportada. Atualize o Bolsário antes de importar.",
+    );
   }
   const data = isVersionedBackup ? payload.data : payload;
 
-  if (!data || typeof data !== "object" || Array.isArray(data) || !Array.isArray(data.transactions)) {
+  if (
+    !data ||
+    typeof data !== "object" ||
+    Array.isArray(data) ||
+    !Array.isArray(data.transactions)
+  ) {
     throw new Error("Dados de backup inválidos");
   }
 
@@ -717,7 +761,10 @@ function isLegacyDemoState(value) {
     ["Cinema e jantar", 190],
   ];
   const hasDemoTransactions = demoTransactions.every(([description, amount]) =>
-    value.transactions.some((transaction) => transaction.description === description && Number(transaction.amount) === amount)
+    value.transactions.some(
+      (transaction) =>
+        transaction.description === description && Number(transaction.amount) === amount,
+    ),
   );
   const budgets = value.budgets || {};
   const demoBudgets = {
@@ -788,8 +835,16 @@ function setActiveView(viewName) {
   if (activeView === "resumo") {
     queueCategoryChartDraw();
   }
-  const titles = { resumo: "Visão do mês", lancamentos: "Lançamentos", orcamento: "Orçamento", planejamento: "Planejamento", perfil: "Seu perfil" };
+  const titles = {
+    resumo: "Visão do mês",
+    lancamentos: "Lançamentos",
+    orcamento: "Orçamento",
+    planejamento: "Planejamento",
+    perfil: "Seu perfil",
+  };
   elements.topbarTitle.textContent = titles[activeView];
+  BolsarioUI.syncView(activeView);
+  if (activeView !== "perfil") applyTheme(getProfile());
 }
 
 function changeMonth(month) {
@@ -798,7 +853,8 @@ function changeMonth(month) {
   elements.startDateFilter.value = "";
   elements.endDateFilter.value = "";
   transactionPage = 1;
-  if (!elements.editingId.value && !elements.description.value.trim()) elements.date.value = defaultTransactionDate();
+  if (!elements.editingId.value && !elements.description.value.trim())
+    elements.date.value = defaultTransactionDate();
   render();
 }
 
@@ -810,13 +866,17 @@ function defaultTransactionDate() {
 function openTransactionForm() {
   history.pushState(null, "", "#lancamentos");
   setActiveView("lancamentos");
-  elements.transactionForm.scrollIntoView({ behavior: "smooth", block: "start" });
-  elements.description.focus({ preventScroll: true });
+  BolsarioUI.openTransaction();
 }
 
 function startNewTransaction() {
-  const hasDraft = elements.editingId.value || elements.description.value.trim() || elements.amount.value || elements.notes.value.trim();
-  if (hasDraft && !window.confirm("Descartar o formulário atual e começar um novo lançamento?")) return;
+  const hasDraft =
+    elements.editingId.value ||
+    elements.description.value.trim() ||
+    elements.amount.value ||
+    elements.notes.value.trim();
+  if (hasDraft && !window.confirm("Descartar o formulário atual e começar um novo lançamento?"))
+    return;
   resetForm();
   openTransactionForm();
 }
@@ -832,7 +892,10 @@ function queueCategoryChartDraw(transactions = getMonthTransactions()) {
 function renderOptions(items, selected = "") {
   const options = uniqueList([...items, selected].filter(Boolean));
   return options
-    .map((item) => `<option value="${escapeHtml(item)}"${item === selected ? " selected" : ""}>${escapeHtml(item)}</option>`)
+    .map(
+      (item) =>
+        `<option value="${escapeHtml(item)}"${item === selected ? " selected" : ""}>${escapeHtml(item)}</option>`,
+    )
     .join("");
 }
 
@@ -851,7 +914,7 @@ function populateCategorySelects(
   selectedCategory = elements.category.value,
   selectedBudgetCategory = elements.budgetCategory.value,
   selectedRecurringCategory = elements.recurringCategory.value,
-  selectedInstallmentCategory = elements.installmentCategory.value
+  selectedInstallmentCategory = elements.installmentCategory.value,
 ) {
   const type = selectedType();
   const cleanSelectedCategory = String(selectedCategory || "").trim();
@@ -862,15 +925,28 @@ function populateCategorySelects(
   elements.category.innerHTML = renderOptions(getCategories(type), cleanSelectedCategory);
   if (cleanSelectedCategory) elements.category.value = cleanSelectedCategory;
 
-  elements.budgetCategory.innerHTML = renderOptions([...getCategories("expense"), ...Object.keys(state.budgets)], cleanSelectedBudgetCategory);
+  elements.budgetCategory.innerHTML = renderOptions(
+    [...getCategories("expense"), ...Object.keys(state.budgets)],
+    cleanSelectedBudgetCategory,
+  );
   if (cleanSelectedBudgetCategory) elements.budgetCategory.value = cleanSelectedBudgetCategory;
 
-  elements.recurringCategory.innerHTML = renderOptions(getCategories(elements.recurringType.value), cleanSelectedRecurringCategory);
-  if (cleanSelectedRecurringCategory) elements.recurringCategory.value = cleanSelectedRecurringCategory;
-  elements.installmentCategory.innerHTML = renderOptions(getCategories("expense"), cleanSelectedInstallmentCategory);
-  if (cleanSelectedInstallmentCategory) elements.installmentCategory.value = cleanSelectedInstallmentCategory;
+  elements.recurringCategory.innerHTML = renderOptions(
+    getCategories(elements.recurringType.value),
+    cleanSelectedRecurringCategory,
+  );
+  if (cleanSelectedRecurringCategory)
+    elements.recurringCategory.value = cleanSelectedRecurringCategory;
+  elements.installmentCategory.innerHTML = renderOptions(
+    getCategories("expense"),
+    cleanSelectedInstallmentCategory,
+  );
+  if (cleanSelectedInstallmentCategory)
+    elements.installmentCategory.value = cleanSelectedInstallmentCategory;
   elements.recurringAccount.innerHTML = renderAccountOptions(elements.recurringAccount.value);
-  elements.installmentAccount.innerHTML = renderAccountOptions(elements.installmentAccount.value || "Cartão de crédito");
+  elements.installmentAccount.innerHTML = renderAccountOptions(
+    elements.installmentAccount.value || "Cartão de crédito",
+  );
   elements.account.innerHTML = renderAccountOptions(elements.account.value);
 }
 
@@ -878,18 +954,29 @@ function populateFilters() {
   const currentCategory = elements.categoryFilter.value || "all";
   const currentAccount = elements.accountFilter.value || "all";
   const categoryOptions = ["all", ...getAllCategories()];
-  const accountOptionsList = ["all", ...uniqueList(state.transactions.map((transaction) => transaction.account))];
+  const accountOptionsList = [
+    "all",
+    ...uniqueList(state.transactions.map((transaction) => transaction.account)),
+  ];
 
   elements.categoryFilter.innerHTML = categoryOptions
-    .map((item) => `<option value="${escapeHtml(item)}"${item === currentCategory ? " selected" : ""}>${item === "all" ? "Todas categorias" : escapeHtml(categoryLabel(item))}</option>`)
+    .map(
+      (item) =>
+        `<option value="${escapeHtml(item)}"${item === currentCategory ? " selected" : ""}>${item === "all" ? "Todas categorias" : escapeHtml(categoryLabel(item))}</option>`,
+    )
     .join("");
   elements.accountFilter.innerHTML = accountOptionsList
-    .map((item) => `<option value="${escapeHtml(item)}"${item === currentAccount ? " selected" : ""}>${item === "all" ? "Todas contas" : escapeHtml(item)}</option>`)
+    .map(
+      (item) =>
+        `<option value="${escapeHtml(item)}"${item === currentAccount ? " selected" : ""}>${item === "all" ? "Todas contas" : escapeHtml(item)}</option>`,
+    )
     .join("");
 }
 
 function getMonthTransactions() {
-  const month = isValidMonth(elements.monthFilter.value) ? elements.monthFilter.value : getCurrentMonth();
+  const month = isValidMonth(elements.monthFilter.value)
+    ? elements.monthFilter.value
+    : getCurrentMonth();
   return state.transactions.filter((transaction) => transaction.date.startsWith(month));
 }
 
@@ -899,7 +986,11 @@ function getFilteredTransactions() {
   const account = elements.accountFilter.value;
   const startDate = elements.startDateFilter.value;
   const endDate = elements.endDateFilter.value;
-  const searchable = (value) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const searchable = (value) =>
+    value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
   const query = searchable(elements.searchFilter.value.trim());
   const hasDateRange = isValidISODate(startDate) || isValidISODate(endDate);
   if (startDate && endDate && startDate > endDate) return [];
@@ -912,26 +1003,40 @@ function getFilteredTransactions() {
     .filter((transaction) => !isValidISODate(endDate) || transaction.date <= endDate)
     .filter((transaction) => {
       if (!query) return true;
-      return searchable([transaction.description, transaction.category, transaction.account, transaction.notes].join(" ")).includes(query);
+      return searchable(
+        [
+          transaction.description,
+          transaction.category,
+          transaction.account,
+          transaction.notes,
+        ].join(" "),
+      ).includes(query);
     })
     .sort((a, b) => {
       switch (elements.sortFilter.value) {
-        case "date-asc": return a.date.localeCompare(b.date);
-        case "amount-desc": return b.amount - a.amount || b.date.localeCompare(a.date);
-        case "amount-asc": return a.amount - b.amount || b.date.localeCompare(a.date);
-        case "description": return a.description.localeCompare(b.description, "pt-BR");
-        default: return b.date.localeCompare(a.date);
+        case "date-asc":
+          return a.date.localeCompare(b.date);
+        case "amount-desc":
+          return b.amount - a.amount || b.date.localeCompare(a.date);
+        case "amount-asc":
+          return a.amount - b.amount || b.date.localeCompare(a.date);
+        case "description":
+          return a.description.localeCompare(b.description, "pt-BR");
+        default:
+          return b.date.localeCompare(a.date);
       }
     });
 }
 
 function summarize(transactions) {
-  const income = transactions
-    .filter((transaction) => transaction.type === "income")
-    .reduce((sum, transaction) => sum + Math.round(transaction.amount * 100), 0) / 100;
-  const expense = transactions
-    .filter((transaction) => transaction.type === "expense")
-    .reduce((sum, transaction) => sum + Math.round(transaction.amount * 100), 0) / 100;
+  const income =
+    transactions
+      .filter((transaction) => transaction.type === "income")
+      .reduce((sum, transaction) => sum + Math.round(transaction.amount * 100), 0) / 100;
+  const expense =
+    transactions
+      .filter((transaction) => transaction.type === "expense")
+      .reduce((sum, transaction) => sum + Math.round(transaction.amount * 100), 0) / 100;
   return {
     income,
     expense,
@@ -957,22 +1062,40 @@ function updateAnnualSummary() {
   elements.yearBalanceValue.textContent = currency(summary.balance);
   elements.yearSavingRateValue.textContent = `${summary.savingRate}%`;
 
+  const months = Array.from({ length: 12 }, (_, index) => {
+    const month = `${year}-${String(index + 1).padStart(2, "0")}`;
+    return {
+      month,
+      summary: summarize(
+        yearTransactions.filter((transaction) => transaction.date.startsWith(month)),
+      ),
+    };
+  });
+  const ceiling = Math.max(
+    1,
+    ...months.flatMap((item) => [item.summary.income, item.summary.expense]),
+  );
   elements.annualMonthList.innerHTML = "";
-  Array.from({ length: 12 }, (_, index) => `${year}-${String(index + 1).padStart(2, "0")}`).forEach((month) => {
-    const monthSummary = summarize(state.transactions.filter((transaction) => transaction.date.startsWith(month)));
+  elements.annualMonthList.dataset.empty = String(!yearTransactions.length);
+  months.forEach(({ month, summary: monthSummary }) => {
     const item = document.createElement("button");
     item.type = "button";
     item.dataset.month = month;
-    item.setAttribute("aria-label", `Ver ${monthLabel(month)}`);
+    const label = `${monthLabel(month)}: entradas ${currency(monthSummary.income)}, gastos ${currency(monthSummary.expense)}, saldo ${currency(monthSummary.balance)}`;
+    item.setAttribute("aria-label", `Ver ${label}`);
+    item.title = label;
     item.setAttribute("aria-pressed", String(month === elements.monthFilter.value));
     item.className = "annual-month";
     item.innerHTML = `
-      <strong>${monthLabel(month).replace(` de ${year}`, "")}</strong>
-      <span>${currency(monthSummary.balance)}</span>
-      <small>${currency(monthSummary.expense)} gastos</small>
+      <span class="annual-bars" aria-hidden="true"><i class="annual-income" style="height:${(monthSummary.income / ceiling) * 100}%"></i><i class="annual-expense" style="height:${(monthSummary.expense / ceiling) * 100}%"></i></span>
+      <span>${monthLabel(month).slice(0, 3)}</span>
     `;
     elements.annualMonthList.appendChild(item);
   });
+  const current =
+    months.find((item) => item.month === elements.monthFilter.value)?.summary || summarize([]);
+  document.querySelector("#annualDetail").innerHTML =
+    `<strong>${monthLabel(elements.monthFilter.value)}</strong><span>Entradas ${currency(current.income)}</span><span>Gastos ${currency(current.expense)}</span><span>Saldo ${currency(current.balance)}</span>`;
 }
 
 function updateMetrics(summary) {
@@ -981,45 +1104,67 @@ function updateMetrics(summary) {
   elements.expenseValue.textContent = currency(summary.expense);
   elements.savingRateValue.textContent = `${summary.savingRate}%`;
 
-  elements.balanceHint.textContent = !summary.incomeCount && !summary.expenseCount ? "Sem lançamentos neste mês" : summary.balance >= 0 ? "Resultado positivo" : "Atenção ao caixa";
+  elements.balanceHint.textContent =
+    !summary.incomeCount && !summary.expenseCount
+      ? "Sem lançamentos neste mês"
+      : summary.balance >= 0
+        ? "Resultado positivo"
+        : "Atenção ao caixa";
   elements.incomeHint.textContent = `${summary.incomeCount} ${summary.incomeCount === 1 ? "lançamento" : "lançamentos"}`;
   elements.expenseHint.textContent = `${summary.expenseCount} ${summary.expenseCount === 1 ? "lançamento" : "lançamentos"}`;
-  elements.savingHint.textContent = summary.income > 0 ? "Saldo em relação às entradas" : "Sem entradas registradas";
+  elements.savingHint.textContent =
+    summary.income > 0 ? "Saldo em relação às entradas" : "Sem entradas registradas";
 }
 
 function renderMonthComparison(summary) {
   const previousMonth = addMonths(elements.monthFilter.value || getCurrentMonth(), -1);
-  const previousTransactions = state.transactions.filter((item) => item.date.startsWith(previousMonth));
+  const previousTransactions = state.transactions.filter((item) =>
+    item.date.startsWith(previousMonth),
+  );
   const previous = summarize(previousTransactions);
   elements.monthComparison.innerHTML = [
-    ["income", "Entradas"], ["expense", "Gastos"], ["balance", "Saldo"],
-  ].map(([key, label]) => {
-    const delta = roundMoney(summary[key] - previous[key]);
-    const favorable = key === "expense" ? delta < 0 : delta > 0;
-    const detail = !previousTransactions.length ? "Sem registros no mês anterior" : delta === 0 ? "Sem alteração" : `${delta > 0 ? "+" : "−"}${currency(Math.abs(delta))} vs. ${monthLabel(previousMonth)}`;
-    return `<div><span>${label}</span><strong class="${previousTransactions.length && delta !== 0 ? favorable ? "amount-income" : "amount-expense" : ""}">${escapeHtml(detail)}</strong></div>`;
-  }).join("");
+    ["income", "Entradas"],
+    ["expense", "Gastos"],
+    ["balance", "Saldo"],
+  ]
+    .map(([key, label]) => {
+      const delta = roundMoney(summary[key] - previous[key]);
+      const favorable = key === "expense" ? delta < 0 : delta > 0;
+      const detail = !previousTransactions.length
+        ? "Sem registros no mês anterior"
+        : delta === 0
+          ? "Sem alteração"
+          : `${delta > 0 ? "+" : "−"}${currency(Math.abs(delta))} vs. ${monthLabel(previousMonth)}`;
+      return `<div><span>${label}</span><strong class="${previousTransactions.length && delta !== 0 ? (favorable ? "amount-income" : "amount-expense") : ""}">${escapeHtml(detail)}</strong></div>`;
+    })
+    .join("");
 }
 
 function updateInsight(summary) {
   const profile = getProfile();
-  const budgetTotal = Object.values(state.budgets).reduce((sum, value) => sum + Number(value || 0), 0);
+  const budgetTotal = Object.values(state.budgets).reduce(
+    (sum, value) => sum + Number(value || 0),
+    0,
+  );
   const spending = expensesByCategory(getMonthTransactions());
-  const budgetUsed = Object.keys(state.budgets).reduce((sum, category) => sum + (spending[category] || 0), 0);
+  const budgetUsed = Object.keys(state.budgets).reduce(
+    (sum, category) => sum + (spending[category] || 0),
+    0,
+  );
   const budgetRatio = budgetTotal > 0 ? Math.round((budgetUsed / budgetTotal) * 100) : 0;
   const monthlyIncome = Number(profile.monthlyIncome || 0);
 
-  let title = `${getAppName()} está acompanhando ${profile.personName ? profile.personName : "o seu mês"}`;
-  let message = `Objetivo atual: ${profile.goal.toLowerCase()}. Cadastre lançamentos e revise os limites para enxergar o dinheiro sem adivinhação.`;
+  let title = "Nenhum movimento no mês";
+  let message = "Entradas e gastos ainda não registrados.";
   let color = "var(--primary)";
 
   if (summary.income > 0 && summary.savingRate >= 20) {
-    title = "Mês saudável até aqui";
-    message = `Você guardou ${summary.savingRate}% das entradas. Mantenha os gastos essenciais sob controle.`;
+    title = "Saldo positivo";
+    message = `${summary.savingRate}% das entradas permanecem no saldo do mês.`;
     color = "var(--good)";
   } else if (summary.balance < 0) {
     title = "Saída maior que entrada";
-    message = `O mês está negativo em ${currency(Math.abs(summary.balance))}. Veja as categorias mais pesadas antes de novos gastos.`;
+    message = `Gastos superam entradas em ${currency(Math.abs(summary.balance))}.`;
     color = "var(--expense)";
   } else if (budgetRatio > 90) {
     title = "Orçamento quase no limite";
@@ -1030,7 +1175,7 @@ function updateInsight(summary) {
     message = `Os gastos já somam ${Math.round((summary.expense / monthlyIncome) * 100)}% da renda mensal informada.`;
     color = "var(--warning)";
   } else if (summary.expense > 0) {
-    title = "Controle ativo";
+    title = "Movimentação registrada";
     message = `Foram registrados ${currency(summary.expense)} em gastos no mês selecionado.`;
   }
 
@@ -1040,14 +1185,17 @@ function updateInsight(summary) {
       <strong>${escapeHtml(title)}</strong>
       <span>${escapeHtml(message)}</span>
     </div>
-    <span class="pill">${budgetTotal > 0 ? `${budgetRatio}% do orçamento` : "Sem limites"}</span>
+    ${budgetTotal > 0 ? `<a class="text-link" href="#orcamento">${budgetRatio}% do orçamento ${icon("ArrowUpRight")}</a>` : `<a class="text-link" href="#orcamento">Definir orçamento ${icon("ArrowUpRight")}</a>`}
   `;
 }
 
 function applyTheme(profile) {
   document.documentElement.dataset.theme = profile.theme;
   document.documentElement.style.setProperty("--primary", profile.accent);
-  document.documentElement.style.setProperty("--primary-dark", accentMap[profile.accent] || profile.accent);
+  document.documentElement.style.setProperty(
+    "--primary-dark",
+    accentMap[profile.accent] || profile.accent,
+  );
 }
 
 function updateBranding() {
@@ -1058,8 +1206,8 @@ function updateBranding() {
   document.title = `${appName} | Controle Pessoal`;
   elements.brandMark.textContent = firstLetter;
   elements.appNameLabel.textContent = appName;
-  elements.brandTitle.textContent = profile.personName ? `Controle de ${profile.personName}` : "Controle pessoal";
-  elements.topbarEyebrow.textContent = profile.personName ? `Painel financeiro de ${profile.personName}` : "Painel financeiro pessoal";
+  elements.brandTitle.textContent = "Finanças pessoais";
+  elements.topbarEyebrow.textContent = profile.personName || "Seu registro financeiro";
   setActiveView(getViewFromHash());
   applyTheme(profile);
   updateProfilePreview(profile);
@@ -1069,9 +1217,12 @@ function updateProfilePreview(profile = getProfile()) {
   const appName = profile.appName || DEFAULT_APP_NAME;
   elements.previewMark.textContent = appName.charAt(0).toUpperCase() || "B";
   elements.previewAppName.textContent = appName;
-  elements.previewPersonName.textContent = profile.personName ? `Controle de ${profile.personName}` : "Controle pessoal";
+  elements.previewPersonName.textContent = profile.personName
+    ? `Controle de ${profile.personName}`
+    : "Controle pessoal";
   elements.previewGoal.textContent = profile.goal;
-  elements.previewIncome.textContent = Number(profile.monthlyIncome) > 0 ? currency(Number(profile.monthlyIncome)) : "Não definida";
+  elements.previewIncome.textContent =
+    Number(profile.monthlyIncome) > 0 ? currency(Number(profile.monthlyIncome)) : "Não definida";
   elements.previewCategories.textContent = `${profile.categories.expense.length} gastos • ${profile.categories.income.length} entradas`;
 }
 
@@ -1095,9 +1246,12 @@ function fillProfileForm() {
   elements.incomeCategories.value = profile.categories.income.join("\n");
   elements.categoryVisuals.value = serializeCategoryVisuals(profile.categoryMeta);
 
-  const accentInput = document.querySelector(`input[name="accentColor"][value="${profile.accent}"]`);
+  const accentInput = document.querySelector(
+    `input[name="accentColor"][value="${profile.accent}"]`,
+  );
   if (accentInput) accentInput.checked = true;
   updateProfilePreview(profile);
+  BolsarioUI.refreshCategories();
 }
 
 function parseCategoryField(value, fallback) {
@@ -1113,7 +1267,8 @@ function parseCategoryVisuals(value, fallback = getProfile().categoryMeta) {
     .forEach((line) => {
       const [category, icon, color] = line.split("|").map((part) => String(part || "").trim());
       if (!category) return;
-      const previous = meta[category] || defaultCategoryMeta[category] || { icon: "•", color: "#475569" };
+      const previous = meta[category] ||
+        defaultCategoryMeta[category] || { icon: "•", color: "#475569" };
       meta[category] = {
         icon: icon || previous.icon,
         color: isHexColor(color) ? color : previous.color,
@@ -1140,7 +1295,10 @@ function handleProfileSubmit(event) {
       expense: parseCategoryField(formData.get("expenseCategories"), defaultCategories.expense),
       income: parseCategoryField(formData.get("incomeCategories"), defaultCategories.income),
     },
-    categoryMeta: parseCategoryVisuals(formData.get("categoryVisuals"), currentProfile.categoryMeta),
+    categoryMeta: parseCategoryVisuals(
+      formData.get("categoryVisuals"),
+      currentProfile.categoryMeta,
+    ),
   });
 
   saveState();
@@ -1149,6 +1307,7 @@ function handleProfileSubmit(event) {
   updateSetupGate();
   render();
   showToast("Perfil salvo.");
+  BolsarioUI.profileSaved();
 }
 
 function previewProfileFromForm() {
@@ -1166,7 +1325,10 @@ function previewProfileFromForm() {
       expense: parseCategoryField(formData.get("expenseCategories"), defaultCategories.expense),
       income: parseCategoryField(formData.get("incomeCategories"), defaultCategories.income),
     },
-    categoryMeta: parseCategoryVisuals(formData.get("categoryVisuals"), currentProfile.categoryMeta),
+    categoryMeta: parseCategoryVisuals(
+      formData.get("categoryVisuals"),
+      currentProfile.categoryMeta,
+    ),
   });
 
   applyTheme(draftProfile);
@@ -1208,6 +1370,7 @@ function updateSetupGate() {
     state.installments.length ||
     state.goals.length;
   elements.setupGate.classList.toggle("hidden", profile.setupComplete || hasData);
+  BolsarioUI.setupVisibility(!(profile.setupComplete || hasData));
 }
 
 function handleSetupSubmit(event) {
@@ -1245,77 +1408,40 @@ function expensesByCategory(transactions) {
 }
 
 function drawCategoryChart(transactions) {
-  const canvas = elements.categoryChart;
-  const ctx = canvas.getContext("2d");
-  if (!ctx || !canvas.getBoundingClientRect().width) return;
-  const ratio = window.devicePixelRatio || 1;
   const entries = Object.entries(expensesByCategory(transactions)).sort((a, b) => b[1] - a[1]);
-  const visibleEntries = entries.slice(0, 7);
-  const height = Math.max(96, visibleEntries.length * 52 + 12);
-  canvas.style.height = `${height}px`;
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = Math.floor(rect.width * ratio);
-  canvas.height = Math.floor(height * ratio);
-  ctx.scale(ratio, ratio);
-  ctx.clearRect(0, 0, rect.width, height);
-  const theme = getComputedStyle(document.documentElement);
   elements.categoryLegend.innerHTML = "";
-
   if (!entries.length) {
-    elements.topCategory.textContent = "Sem dados";
-    ctx.fillStyle = theme.getPropertyValue("--muted").trim();
-    ctx.font = "500 13px system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("Sem gastos no mês selecionado", rect.width / 2, 48, rect.width - 16);
+    elements.topCategory.textContent = "0 categorias";
+    elements.categoryLegend.innerHTML = `<div class="empty-state" role="listitem"><span class="empty-icon">${icon("ChartNoAxesColumn")}</span><strong>Nenhum gasto no mês</strong><span>Não há distribuição de gastos para este período.</span></div>`;
     return;
   }
-
   const total = entries.reduce((sum, [, value]) => sum + value, 0);
   const max = Math.max(...entries.map(([, value]) => value));
-  const width = Math.max(1, rect.width - 2);
-
-  elements.topCategory.textContent = `${entries[0][0]} ${Math.round((entries[0][1] / total) * 100)}%`;
-
-  visibleEntries.forEach(([category, value], index) => {
-    const y = 8 + index * 52;
-    const barWidth = (value / max) * width;
-    const color = getCategoryMeta(category).color || palette[index % palette.length];
-
-    ctx.fillStyle = theme.getPropertyValue("--ink").trim();
-    ctx.font = "700 12px system-ui, sans-serif";
-    ctx.textAlign = "left";
-    const amountLabel = currency(value);
-    const maxLabelWidth = Math.max(40, width - ctx.measureText(amountLabel).width - 20);
-    let label = category;
-    while (label.length > 1 && ctx.measureText(label).width > maxLabelWidth) label = label.slice(0, -1);
-    ctx.fillText(label === category ? label : `${label.slice(0, -1)}…`, 0, y + 12, maxLabelWidth);
-    ctx.textAlign = "right";
-    ctx.fillText(amountLabel, width, y + 12, width - maxLabelWidth - 10);
-
-    ctx.fillStyle = theme.getPropertyValue("--surface-muted").trim();
-    roundRect(ctx, 0, y + 24, width, 8, 4);
-    ctx.fill();
-
-    ctx.fillStyle = color;
-    roundRect(ctx, 0, y + 24, Math.max(2, barWidth), 8, 4);
-    ctx.fill();
-
-    const item = document.createElement("span");
-    item.className = "legend-item";
-    item.innerHTML = `<span class="legend-swatch" style="background:${color}"></span>${escapeHtml(categoryLabel(category))}: ${currency(value)}`;
+  elements.topCategory.textContent = `${entries.length} ${entries.length === 1 ? "categoria" : "categorias"}`;
+  entries.forEach(([category, value]) => {
+    const meta = getCategoryMeta(category);
+    const item = document.createElement("div");
+    item.className = "distribution-row";
+    item.setAttribute("role", "listitem");
+    item.innerHTML = `<span class="category-glyph">${BolsarioUI.categoryIcon(meta.icon)}</span><div class="distribution-data"><div class="distribution-heading"><span>${escapeHtml(category)}</span><strong>${currency(value)}</strong><small>${Math.round((value / total) * 100)}%</small></div><div class="distribution-track" aria-hidden="true"><span style="width:${(value / max) * 100}%;background:${meta.color}"></span></div></div>`;
     elements.categoryLegend.appendChild(item);
   });
 }
 
-function roundRect(ctx, x, y, width, height, radius) {
-  const r = Math.min(radius, width / 2, height / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + width, y, x + width, y + height, r);
-  ctx.arcTo(x + width, y + height, x, y + height, r);
-  ctx.arcTo(x, y + height, x, y, r);
-  ctx.arcTo(x, y, x + width, y, r);
-  ctx.closePath();
+function renderRecentTransactions() {
+  const recent = getMonthTransactions()
+    .slice()
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 5);
+  document.querySelector("#recentTransactions").innerHTML = recent.length
+    ? recent
+        .map(
+          (transaction) =>
+            `<button class="recent-row" type="button" data-action="edit" data-id="${escapeHtml(transaction.id)}" aria-label="Editar ${escapeHtml(transaction.description)}"><span class="recent-date">${shortDate(transaction.date)}</span><span class="recent-description"><strong>${escapeHtml(transaction.description)}</strong><small>${escapeHtml(transaction.category)} · ${escapeHtml(transaction.account)}</small></span><strong class="${transaction.type === "income" ? "amount-income" : "amount-expense"}">${transaction.type === "income" ? "+" : "−"} ${currency(transaction.amount)}</strong><span class="recent-arrow">${icon("ChevronRight")}</span></button>`,
+        )
+        .join("")
+    : `<div class="empty-state"><strong>Seu histórico começa no primeiro lançamento</strong><button class="ghost-button" type="button" id="firstTransactionBtn">${icon("Plus")}Adicionar lançamento</button></div>`;
+  document.querySelector("#firstTransactionBtn")?.addEventListener("click", startNewTransaction);
 }
 
 function renderTransactions() {
@@ -1326,17 +1452,36 @@ function renderTransactions() {
   const invalidRange = Boolean(start && end && start > end);
   elements.filterError.classList.toggle("hidden", !invalidRange);
   elements.filteredExportBtn.disabled = !transactions.length;
-  elements.filterPeriod.textContent = start || end ? `${start ? shortDate(start) : "Início"} até ${end ? shortDate(end) : "hoje e futuros"}` : monthLabel(elements.monthFilter.value);
+  elements.filterPeriod.textContent =
+    start || end
+      ? `${start ? shortDate(start) : "Início"} até ${end ? shortDate(end) : "hoje e futuros"}`
+      : monthLabel(elements.monthFilter.value);
   elements.filteredSummary.innerHTML = `<span><strong>${transactions.length}</strong> ${transactions.length === 1 ? "lançamento" : "lançamentos"}</span><span>Entradas <strong class="amount-income">${currency(summary.income)}</strong></span><span>Gastos <strong class="amount-expense">${currency(summary.expense)}</strong></span><span>Saldo <strong>${currency(summary.balance)}</strong></span>`;
   const totalPages = Math.max(1, Math.ceil(transactions.length / TRANSACTIONS_PER_PAGE));
   transactionPage = Math.max(1, Math.min(transactionPage, totalPages));
   const offset = (transactionPage - 1) * TRANSACTIONS_PER_PAGE;
-  elements.pageInfo.textContent = transactions.length ? `${offset + 1}–${Math.min(offset + TRANSACTIONS_PER_PAGE, transactions.length)} de ${transactions.length}` : "0 lançamentos";
+  elements.pageInfo.textContent = transactions.length
+    ? `${offset + 1}–${Math.min(offset + TRANSACTIONS_PER_PAGE, transactions.length)} de ${transactions.length}`
+    : "0 lançamentos";
   elements.previousPageBtn.disabled = transactionPage === 1;
   elements.nextPageBtn.disabled = transactionPage === totalPages;
   elements.transactionPagination.classList.toggle("hidden", !transactions.length);
-  const hasFilters = elements.typeFilter.value !== "all" || elements.categoryFilter.value !== "all" || elements.accountFilter.value !== "all" || start || end || elements.searchFilter.value.trim();
-  elements.emptyStateHint.textContent = invalidRange ? "Verifique o período selecionado." : hasFilters ? "Nenhum resultado para estes filtros." : "Sem lançamentos neste mês.";
+  const hasFilters =
+    elements.typeFilter.value !== "all" ||
+    elements.categoryFilter.value !== "all" ||
+    elements.accountFilter.value !== "all" ||
+    start ||
+    end ||
+    elements.searchFilter.value.trim();
+  elements.emptyStateHint.textContent = invalidRange
+    ? "Verifique o período selecionado."
+    : hasFilters
+      ? "Nenhum resultado para estes filtros."
+      : "Sem lançamentos neste mês.";
+  const emptyAction = document.querySelector("#emptyActionBtn");
+  emptyAction.dataset.action = hasFilters ? "clear" : "add";
+  emptyAction.innerHTML = `${icon(hasFilters ? "FilterX" : "Plus")}${hasFilters ? "Limpar filtros" : "Adicionar lançamento"}`;
+  BolsarioUI.syncFilters();
   elements.transactionRows.innerHTML = "";
   elements.emptyState.classList.toggle("hidden", transactions.length > 0);
 
@@ -1403,11 +1548,11 @@ function renderBudgets(transactions) {
         <div class="budget-item-meta">
           <span class="budget-item-amount">${currency(used)} de ${currency(limit)}${limitIncomeLabel ? ` (${escapeHtml(limitIncomeLabel)})` : ""}</span>
           <button class="row-action budget-delete" type="button" title="Excluir orçamento" aria-label="Excluir orçamento de ${escapeHtml(category)}" data-category="${escapeHtml(category)}">
-            <svg viewBox="0 0 24 24"><path d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm4 2v8h2v-8h-2Zm4 0v8h2v-8h-2Z" /></svg>
+            ${icon("Trash2")}
           </button>
         </div>
       </div>
-      <div class="progress" aria-label="${percent}% usado em ${escapeHtml(category)}">
+      <div class="progress" role="meter" aria-label="Uso do orçamento de ${escapeHtml(category)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(percent, 100)}" aria-valuetext="${percent}% usado, ${currency(used)} de ${currency(limit)}">
         <div class="progress-bar ${severity}" style="width:${Math.min(percent, 100)}%"></div>
       </div>
       <small>${percent}% usado${usedIncomeLabel ? `, gasto ${escapeHtml(usedIncomeLabel)}` : ""}${percent > 100 ? `, passou ${currency(used - limit)}` : ""}</small>
@@ -1423,7 +1568,9 @@ function getBudgetAlertMessage(transaction) {
   if (!Number.isFinite(limit) || limit <= 0) return "";
 
   const month = transaction.date.slice(0, 7);
-  const spending = expensesByCategory(state.transactions.filter((item) => item.date.startsWith(month)));
+  const spending = expensesByCategory(
+    state.transactions.filter((item) => item.date.startsWith(month)),
+  );
   const used = spending[transaction.category] || 0;
   const percent = Math.round((used / limit) * 100);
 
@@ -1457,6 +1604,7 @@ function render() {
   renderGoals();
   renderArchives();
   renderFutureFlow();
+  renderRecentTransactions();
 }
 
 function resetForm() {
@@ -1464,7 +1612,7 @@ function resetForm() {
   elements.editingId.value = "";
   elements.date.value = defaultTransactionDate();
   elements.typeExpense.checked = true;
-  elements.formTitle.textContent = "Adicionar gasto ou entrada";
+  elements.formTitle.textContent = "Novo lançamento";
   elements.cancelEditBtn.classList.add("hidden");
   populateCategorySelects(getCategories("expense")[0]);
 }
@@ -1476,7 +1624,9 @@ function handleTransactionSubmit(event) {
   const amount = roundMoney(Number(formData.get("amount")));
   const date = String(formData.get("date"));
   const wasEditing = Boolean(elements.editingId.value);
-  const existingTransaction = wasEditing ? state.transactions.find((item) => item.id === elements.editingId.value) : null;
+  const existingTransaction = wasEditing
+    ? state.transactions.find((item) => item.id === elements.editingId.value)
+    : null;
   if (wasEditing && !existingTransaction) {
     showToast("Este lançamento não existe mais. Cancele a edição e crie um novo.");
     return;
@@ -1497,13 +1647,20 @@ function handleTransactionSubmit(event) {
     source: existingTransaction?.source || "manual",
   };
 
-  if (!transaction.description || !Number.isFinite(transaction.amount) || transaction.amount <= 0 || !isValidISODate(transaction.date)) {
+  if (
+    !transaction.description ||
+    !Number.isFinite(transaction.amount) ||
+    transaction.amount <= 0 ||
+    !isValidISODate(transaction.date)
+  ) {
     showToast("Preencha descrição, valor e data.");
     return;
   }
 
   if (elements.editingId.value) {
-    state.transactions = state.transactions.map((item) => (item.id === transaction.id ? transaction : item));
+    state.transactions = state.transactions.map((item) =>
+      item.id === transaction.id ? transaction : item,
+    );
   } else {
     state.transactions.push(transaction);
   }
@@ -1515,6 +1672,7 @@ function handleTransactionSubmit(event) {
   resetForm();
   render();
   showToast(budgetAlert || (wasEditing ? "Lançamento atualizado." : "Lançamento salvo."));
+  BolsarioUI.closeTransaction();
 }
 
 function handleTableClick(event) {
@@ -1555,9 +1713,16 @@ function undoTransactionDeletion() {
   const transaction = undoTransaction;
   if (!transaction) return;
   // Generated items may have been recreated after deletion; never restore a second occurrence.
-  const alreadyExists = state.transactions.some((item) => item.id === transaction.id ||
-    (transaction.recurringId && item.recurringId === transaction.recurringId && item.date.slice(0, 7) === transaction.date.slice(0, 7)) ||
-    (transaction.installmentId && item.installmentId === transaction.installmentId && item.installmentNumber === transaction.installmentNumber));
+  const alreadyExists = state.transactions.some(
+    (item) =>
+      item.id === transaction.id ||
+      (transaction.recurringId &&
+        item.recurringId === transaction.recurringId &&
+        item.date.slice(0, 7) === transaction.date.slice(0, 7)) ||
+      (transaction.installmentId &&
+        item.installmentId === transaction.installmentId &&
+        item.installmentNumber === transaction.installmentNumber),
+  );
   if (alreadyExists) {
     showToast("Este lançamento já foi restaurado ou gerado novamente.");
     return;
@@ -1584,7 +1749,10 @@ function handleBudgetSubmit(event) {
   const category = elements.budgetCategory.value;
   const hasAmount = hasInputValue(elements.budgetAmount.value);
   const hasPercent = hasInputValue(elements.budgetPercent.value);
-  const resolved = resolveAmountFromInputs(elements.budgetAmount.value, elements.budgetPercent.value);
+  const resolved = resolveAmountFromInputs(
+    elements.budgetAmount.value,
+    elements.budgetPercent.value,
+  );
   const amount = roundMoney(resolved.amount);
 
   if (resolved.usesPercent && !Number.isFinite(amount)) {
@@ -1668,8 +1836,12 @@ function buildFutureFlowMonth(month) {
       });
     });
 
-  const income = items.filter((item) => item.type === "income").reduce((sum, item) => sum + item.amount, 0);
-  const expense = items.filter((item) => item.type === "expense").reduce((sum, item) => sum + item.amount, 0);
+  const income = items
+    .filter((item) => item.type === "income")
+    .reduce((sum, item) => sum + item.amount, 0);
+  const expense = items
+    .filter((item) => item.type === "expense")
+    .reduce((sum, item) => sum + item.amount, 0);
 
   return {
     month,
@@ -1681,8 +1853,12 @@ function buildFutureFlowMonth(month) {
 }
 
 function renderFutureFlow() {
-  const startMonth = isValidMonth(elements.monthFilter.value) ? elements.monthFilter.value : getCurrentMonth();
-  const projections = Array.from({ length: 6 }, (_, index) => buildFutureFlowMonth(addMonths(startMonth, index)));
+  const startMonth = isValidMonth(elements.monthFilter.value)
+    ? elements.monthFilter.value
+    : getCurrentMonth();
+  const projections = Array.from({ length: 6 }, (_, index) =>
+    buildFutureFlowMonth(addMonths(startMonth, index)),
+  );
   const totalBalance = projections.reduce((sum, item) => sum + item.balance, 0);
   const hasItems = projections.some((projection) => projection.items.length);
 
@@ -1725,7 +1901,7 @@ function renderFutureFlow() {
                 ${escapeHtml(item.description)}
                 <strong>${item.type === "income" ? "+" : "-"} ${currency(item.amount)}</strong>
               </span>
-            `
+            `,
           )
           .join("")}
         ${hiddenCount > 0 ? `<span><small>Outros</small>+${hiddenCount} movimento${hiddenCount === 1 ? "" : "s"}</span>` : ""}
@@ -1736,7 +1912,9 @@ function renderFutureFlow() {
 }
 
 function transactionExistsForRecurring(recurringId, month) {
-  return state.transactions.some((transaction) => transaction.recurringId === recurringId && transaction.date.startsWith(month));
+  return state.transactions.some(
+    (transaction) => transaction.recurringId === recurringId && transaction.date.startsWith(month),
+  );
 }
 
 function generateRecurringForMonth(month = elements.monthFilter.value || getCurrentMonth()) {
@@ -1767,7 +1945,11 @@ function generateRecurringForMonth(month = elements.monthFilter.value || getCurr
 
   saveState();
   render();
-  showToast(created ? `${created} recorrente${created === 1 ? "" : "s"} gerado${created === 1 ? "" : "s"}.` : "Nenhum recorrente pendente.");
+  showToast(
+    created
+      ? `${created} recorrente${created === 1 ? "" : "s"} gerado${created === 1 ? "" : "s"}.`
+      : "Nenhum recorrente pendente.",
+  );
 }
 
 function resetRecurringForm() {
@@ -1812,7 +1994,13 @@ function handleRecurringSubmit(event) {
     return;
   }
 
-  if (!formData.get("recurringDescription") || (!hasInputValue(amountInput) && !hasInputValue(percentInput)) || !Number.isFinite(amount) || amount <= 0 || !Number.isFinite(day)) {
+  if (
+    !formData.get("recurringDescription") ||
+    (!hasInputValue(amountInput) && !hasInputValue(percentInput)) ||
+    !Number.isFinite(amount) ||
+    amount <= 0 ||
+    !Number.isFinite(day)
+  ) {
     showToast("Informe descrição, valor e dia válidos.");
     return;
   }
@@ -1888,9 +2076,9 @@ function renderRecurring() {
           <strong>${currency(item.amount)}</strong>
           ${recurringIncomeLabel ? `<small>${escapeHtml(recurringIncomeLabel)}</small>` : ""}
         </div>
-        <button class="row-action" type="button" title="Editar" data-recurring-action="edit" data-id="${escapeHtml(item.id)}">Editar</button>
-        <button class="row-action" type="button" title="${item.active ? "Pausar" : "Ativar"}" data-recurring-action="toggle" data-id="${escapeHtml(item.id)}">${item.active ? "||" : "▶"}</button>
-        <button class="row-action" type="button" title="Excluir" data-recurring-action="delete" data-id="${escapeHtml(item.id)}">×</button>
+        <button class="row-action" type="button" title="Editar" aria-label="Editar recorrente ${escapeHtml(item.description)}" data-recurring-action="edit" data-id="${escapeHtml(item.id)}">${icon("Pencil")}</button>
+        <button class="row-action" type="button" title="${item.active ? "Pausar" : "Ativar"}" aria-label="${item.active ? "Pausar" : "Ativar"} recorrente ${escapeHtml(item.description)}" data-recurring-action="toggle" data-id="${escapeHtml(item.id)}">${icon(item.active ? "Pause" : "Play")}</button>
+        <button class="row-action" type="button" title="Excluir" aria-label="Excluir recorrente ${escapeHtml(item.description)}" data-recurring-action="delete" data-id="${escapeHtml(item.id)}">${icon("Trash2")}</button>
       </div>
     `;
     elements.recurringList.appendChild(row);
@@ -1899,11 +2087,18 @@ function renderRecurring() {
 
 function isValidInstallmentPlan(plan) {
   const totalCents = Math.round(roundMoney(plan.totalAmount) * 100);
-  return Number.isSafeInteger(totalCents) && Number.isInteger(plan.installments) && plan.installments >= 2 && plan.installments <= 60 && totalCents >= plan.installments;
+  return (
+    Number.isSafeInteger(totalCents) &&
+    Number.isInteger(plan.installments) &&
+    plan.installments >= 2 &&
+    plan.installments <= 60 &&
+    totalCents >= plan.installments
+  );
 }
 
 function createInstallmentTransactions(plan) {
-  if (!isValidInstallmentPlan(plan)) throw new RangeError("Cada parcela precisa ter pelo menos R$ 0,01.");
+  if (!isValidInstallmentPlan(plan))
+    throw new RangeError("Cada parcela precisa ter pelo menos R$ 0,01.");
   const totalCents = Math.round(plan.totalAmount * 100);
   const baseCents = Math.floor(totalCents / plan.installments);
   const remainder = totalCents - baseCents * plan.installments;
@@ -1948,7 +2143,12 @@ function fillInstallmentForm(plan) {
   elements.installmentCount.value = plan.installments;
   elements.installmentStartMonth.value = plan.startMonth;
   elements.installmentNotes.value = plan.notes || "";
-  populateCategorySelects(elements.category.value, elements.budgetCategory.value, elements.recurringCategory.value, plan.category);
+  populateCategorySelects(
+    elements.category.value,
+    elements.budgetCategory.value,
+    elements.recurringCategory.value,
+    plan.category,
+  );
   elements.installmentCategory.value = plan.category;
   elements.installmentAccount.innerHTML = renderAccountOptions(plan.account);
   elements.installmentAccount.value = plan.account;
@@ -1965,7 +2165,14 @@ function handleInstallmentSubmit(event) {
   const installments = Number(formData.get("installmentCount"));
   const startMonth = String(formData.get("installmentStartMonth"));
 
-  if (!formData.get("installmentDescription") || !Number.isFinite(totalAmount) || totalAmount <= 0 || !Number.isFinite(installments) || installments < 2 || !isValidMonth(startMonth)) {
+  if (
+    !formData.get("installmentDescription") ||
+    !Number.isFinite(totalAmount) ||
+    totalAmount <= 0 ||
+    !Number.isFinite(installments) ||
+    installments < 2 ||
+    !isValidMonth(startMonth)
+  ) {
     showToast("Informe dados válidos para a compra parcelada.");
     return;
   }
@@ -1989,10 +2196,14 @@ function handleInstallmentSubmit(event) {
   };
 
   if (existing) {
-    const confirmed = window.confirm("Atualizar esta compra vai recriar as parcelas ligadas a ela. Continuar?");
+    const confirmed = window.confirm(
+      "Atualizar esta compra vai recriar as parcelas ligadas a ela. Continuar?",
+    );
     if (!confirmed) return;
     state.installments = state.installments.map((item) => (item.id === editingId ? plan : item));
-    state.transactions = state.transactions.filter((transaction) => transaction.installmentId !== editingId);
+    state.transactions = state.transactions.filter(
+      (transaction) => transaction.installmentId !== editingId,
+    );
   } else {
     state.installments.push(plan);
   }
@@ -2016,7 +2227,9 @@ function handleInstallmentListClick(event) {
     return;
   }
 
-  const confirmed = window.confirm(`Excluir compra parcelada "${plan.description}" e suas parcelas?`);
+  const confirmed = window.confirm(
+    `Excluir compra parcelada "${plan.description}" e suas parcelas?`,
+  );
   if (!confirmed) return;
   state.installments = state.installments.filter((item) => item.id !== id);
   state.transactions = state.transactions.filter((transaction) => transaction.installmentId !== id);
@@ -2042,8 +2255,8 @@ function renderInstallments() {
       </div>
       <div class="compact-actions">
         <strong>${currency(item.totalAmount)}</strong>
-        <button class="row-action" type="button" title="Editar" data-installment-action="edit" data-id="${escapeHtml(item.id)}">Editar</button>
-        <button class="row-action" type="button" title="Excluir" data-installment-action="delete" data-id="${escapeHtml(item.id)}">×</button>
+        <button class="row-action" type="button" title="Editar" aria-label="Editar compra ${escapeHtml(item.description)}" data-installment-action="edit" data-id="${escapeHtml(item.id)}">${icon("Pencil")}</button>
+        <button class="row-action" type="button" title="Excluir" aria-label="Excluir compra ${escapeHtml(item.description)}" data-installment-action="delete" data-id="${escapeHtml(item.id)}">${icon("Trash2")}</button>
       </div>
     `;
     elements.installmentList.appendChild(row);
@@ -2093,12 +2306,23 @@ function handleGoalSubmit(event) {
   const current = roundMoney(currentResolved.amount);
   const dueDate = String(formData.get("goalDueDate") || "");
 
-  if ((targetResolved.usesPercent || currentResolved.usesPercent) && (!Number.isFinite(target) || !Number.isFinite(current))) {
+  if (
+    (targetResolved.usesPercent || currentResolved.usesPercent) &&
+    (!Number.isFinite(target) || !Number.isFinite(current))
+  ) {
     showToast("Defina a renda base mensal no Perfil para usar porcentagem.");
     return;
   }
 
-  if (!formData.get("goalName") || (!hasInputValue(targetInput) && !hasInputValue(targetPercentInput)) || !Number.isFinite(target) || target <= 0 || !Number.isFinite(current) || current < 0 || (dueDate && !isValidISODate(dueDate))) {
+  if (
+    !formData.get("goalName") ||
+    (!hasInputValue(targetInput) && !hasInputValue(targetPercentInput)) ||
+    !Number.isFinite(target) ||
+    target <= 0 ||
+    !Number.isFinite(current) ||
+    current < 0 ||
+    (dueDate && !isValidISODate(dueDate))
+  ) {
     showToast("Informe dados válidos para a meta.");
     return;
   }
@@ -2167,11 +2391,11 @@ function renderGoals() {
       <div class="budget-item-header">
         <span class="budget-item-title">${escapeHtml(goal.name)}</span>
         <div class="row-actions">
-          <button class="row-action" type="button" title="Editar" data-goal-action="edit" data-id="${escapeHtml(goal.id)}">Editar</button>
-          <button class="row-action" type="button" title="Excluir" data-goal-action="delete" data-id="${escapeHtml(goal.id)}">×</button>
+          <button class="row-action" type="button" title="Editar" aria-label="Editar meta ${escapeHtml(goal.name)}" data-goal-action="edit" data-id="${escapeHtml(goal.id)}">${icon("Pencil")}</button>
+          <button class="row-action" type="button" title="Excluir" aria-label="Excluir meta ${escapeHtml(goal.name)}" data-goal-action="delete" data-id="${escapeHtml(goal.id)}">${icon("Trash2")}</button>
         </div>
       </div>
-      <div class="progress" aria-label="${percent}% concluído">
+      <div class="progress" role="meter" aria-label="Progresso de ${escapeHtml(goal.name)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(percent, 100)}" aria-valuetext="${percent}% concluído">
         <div class="progress-bar" style="width:${percent}%"></div>
       </div>
       <small>${currency(goal.current)}${currentIncomeLabel ? ` (${escapeHtml(currentIncomeLabel)})` : ""} de ${currency(goal.target)}${targetIncomeLabel ? ` (${escapeHtml(targetIncomeLabel)})` : ""}${goal.dueDate ? ` • ${shortDate(goal.dueDate)}` : ""}${monthlyContribution ? ` • guardar ${currency(monthlyContribution)}/mês` : ""}</small>
@@ -2181,14 +2405,20 @@ function renderGoals() {
 }
 
 function archiveCurrentMonth() {
-  const month = isValidMonth(elements.monthFilter.value) ? elements.monthFilter.value : getCurrentMonth();
-  const transactions = state.transactions.filter((transaction) => transaction.date.startsWith(month));
+  const month = isValidMonth(elements.monthFilter.value)
+    ? elements.monthFilter.value
+    : getCurrentMonth();
+  const transactions = state.transactions.filter((transaction) =>
+    transaction.date.startsWith(month),
+  );
   if (!transactions.length) {
     showToast("Nenhum lançamento neste mês.");
     return;
   }
 
-  const confirmed = window.confirm(`Arquivar ${monthLabel(month)} e remover os lançamentos deste mês da lista ativa?`);
+  const confirmed = window.confirm(
+    `Arquivar ${monthLabel(month)} e remover os lançamentos deste mês da lista ativa?`,
+  );
   if (!confirmed) return;
 
   state.archives = state.archives.filter((archive) => archive.month !== month);
@@ -2199,7 +2429,9 @@ function archiveCurrentMonth() {
     summary: summarize(transactions),
     transactions,
   });
-  state.transactions = state.transactions.filter((transaction) => !transaction.date.startsWith(month));
+  state.transactions = state.transactions.filter(
+    (transaction) => !transaction.date.startsWith(month),
+  );
   saveState();
   render();
   showToast("Mês arquivado.");
@@ -2248,23 +2480,37 @@ function exportCsv(transactions = state.transactions, filtered = false) {
 
   const csv = `\uFEFF${rows.map((row) => row.map(csvCell).join(";")).join("\n")}`;
   const filenameBase = slug(getAppName());
-  downloadFile(`${filenameBase}-${filtered ? "filtrados" : "lancamentos"}-v${CSV_SCHEMA_VERSION}-${getTodayISO()}.csv`, csv, "text/csv;charset=utf-8");
+  downloadFile(
+    `${filenameBase}-${filtered ? "filtrados" : "lancamentos"}-v${CSV_SCHEMA_VERSION}-${getTodayISO()}.csv`,
+    csv,
+    "text/csv;charset=utf-8",
+  );
   showToast(`CSV exportado: ${transactions.length} lançamentos.`);
 }
 
 function exportBackup() {
   const backup = JSON.stringify(createBackupPayload(), null, 2);
-  downloadFile(`${slug(getAppName())}-backup-v${BACKUP_SCHEMA_VERSION}-${getTodayISO()}.json`, backup, "application/json");
+  downloadFile(
+    `${slug(getAppName())}-backup-v${BACKUP_SCHEMA_VERSION}-${getTodayISO()}.json`,
+    backup,
+    "application/json",
+  );
   showToast("Backup completo exportado.");
 }
 
 function exportPdf() {
   const profile = getProfile();
   const appName = getAppName();
-  const month = isValidMonth(elements.monthFilter.value) ? elements.monthFilter.value : getCurrentMonth();
-  const transactions = getMonthTransactions().slice().sort((a, b) => a.date.localeCompare(b.date));
+  const month = isValidMonth(elements.monthFilter.value)
+    ? elements.monthFilter.value
+    : getCurrentMonth();
+  const transactions = getMonthTransactions()
+    .slice()
+    .sort((a, b) => a.date.localeCompare(b.date));
   const summary = summarize(transactions);
-  const categoryEntries = Object.entries(expensesByCategory(transactions)).sort((a, b) => b[1] - a[1]);
+  const categoryEntries = Object.entries(expensesByCategory(transactions)).sort(
+    (a, b) => b[1] - a[1],
+  );
   const budgetEntries = Object.entries(state.budgets)
     .filter(([, limit]) => Number(limit) > 0)
     .sort((a, b) => a[0].localeCompare(b[0]));
@@ -2300,7 +2546,7 @@ function exportPdf() {
           currency(value),
           `${summary.expense > 0 ? Math.round((value / summary.expense) * 100) : 0}%`,
         ]),
-        "Sem gastos no mês selecionado."
+        "Sem gastos no mês selecionado.",
       )}
     </section>
 
@@ -2318,7 +2564,7 @@ function exportPdf() {
             incomePercentLabel(Number(limit)) || "-",
           ];
         }),
-        "Nenhum orçamento cadastrado."
+        "Nenhum orçamento cadastrado.",
       )}
     </section>
 
@@ -2334,7 +2580,7 @@ function exportPdf() {
           escapeHtml(transaction.account),
           `${transaction.type === "income" ? "+" : "-"} ${currency(transaction.amount)}`,
         ]),
-        "Nenhum lançamento encontrado para este mês."
+        "Nenhum lançamento encontrado para este mês.",
       )}
     </section>
   `;
@@ -2364,9 +2610,7 @@ function renderReportTable(headers, rows, emptyMessage) {
         <tr>${headers.map((header) => `<th>${header}</th>`).join("")}</tr>
       </thead>
       <tbody>
-        ${rows
-          .map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join("")}</tr>`)
-          .join("")}
+        ${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join("")}</tr>`).join("")}
       </tbody>
     </table>
   `;
@@ -2394,12 +2638,21 @@ function downloadFile(filename, content, type) {
 
 function importJson(file) {
   if (!file) return;
+  if (elements.importBtn.disabled) return;
+  BolsarioUI.importing(true);
   const reader = new FileReader();
   reader.onload = () => {
     try {
       const parsed = JSON.parse(String(reader.result));
       const backup = extractBackupData(parsed);
-      if (!window.confirm(`Importar backup com ${backup.state.transactions.length} lançamentos? Os dados atuais serão substituídos. Cancele para baixar um backup antes.`)) return;
+      if (
+        !window.confirm(
+          `Importar backup com ${backup.state.transactions.length} lançamentos? Os dados atuais serão substituídos. Cancele para baixar um backup antes.`,
+        )
+      ) {
+        BolsarioUI.operation("");
+        return;
+      }
       // Persist before replacing the in-memory state so failed writes preserve the current session.
       localStorage.setItem(STORAGE_KEY, JSON.stringify(backup.state));
       state = backup.state;
@@ -2414,15 +2667,24 @@ function importJson(file) {
       populateCategorySelects();
       updateSetupGate();
       showToast("Backup importado.");
+      BolsarioUI.operation("");
       render();
     } catch (error) {
-      showToast(error instanceof SyntaxError ? "Arquivo JSON inválido. Os dados atuais foram preservados." : error.message || "Não consegui importar este arquivo JSON.");
+      const message =
+        error instanceof SyntaxError
+          ? "Arquivo JSON inválido. Os dados atuais foram preservados."
+          : error.message || "Não consegui importar este arquivo JSON.";
+      showToast(message);
+      BolsarioUI.operation(message, true);
     } finally {
       elements.importFile.value = "";
+      BolsarioUI.importing(false);
     }
   };
   reader.onerror = () => {
     elements.importFile.value = "";
+    BolsarioUI.importing(false);
+    BolsarioUI.operation("Não foi possível ler o arquivo. Tente novamente.", true);
     showToast("Não foi possível ler o arquivo. Tente novamente.");
   };
   reader.readAsText(file);
@@ -2444,11 +2706,14 @@ function showToast(message, canUndo = false) {
   elements.toastMessage.textContent = message;
   elements.toastUndoBtn.classList.toggle("hidden", !canUndo);
   elements.toast.classList.add("show");
-  toastTimer = setTimeout(() => {
-    elements.toast.classList.remove("show");
-    elements.toastUndoBtn.classList.add("hidden");
-    undoTransaction = null;
-  }, canUndo ? 12000 : 5000);
+  toastTimer = setTimeout(
+    () => {
+      elements.toast.classList.remove("show");
+      elements.toastUndoBtn.classList.add("hidden");
+      undoTransaction = null;
+    },
+    canUndo ? 12000 : 5000,
+  );
 }
 
 function bindEvents() {
@@ -2462,12 +2727,20 @@ function bindEvents() {
     });
   });
   document.querySelectorAll("input[name='type']").forEach((input) => {
-    input.addEventListener("change", () => populateCategorySelects(getCategories(selectedType())[0]));
+    input.addEventListener("change", () =>
+      populateCategorySelects(getCategories(selectedType())[0]),
+    );
   });
   window.addEventListener("hashchange", () => setActiveView(getViewFromHash()));
-  elements.monthFilter.addEventListener("change", () => changeMonth(elements.monthFilter.value || getCurrentMonth()));
-  elements.previousMonthBtn.addEventListener("click", () => changeMonth(addMonths(elements.monthFilter.value, -1)));
-  elements.nextMonthBtn.addEventListener("click", () => changeMonth(addMonths(elements.monthFilter.value, 1)));
+  elements.monthFilter.addEventListener("change", () =>
+    changeMonth(elements.monthFilter.value || getCurrentMonth()),
+  );
+  elements.previousMonthBtn.addEventListener("click", () =>
+    changeMonth(addMonths(elements.monthFilter.value, -1)),
+  );
+  elements.nextMonthBtn.addEventListener("click", () =>
+    changeMonth(addMonths(elements.monthFilter.value, 1)),
+  );
   elements.currentMonthBtn.addEventListener("click", () => changeMonth(getCurrentMonth()));
   elements.quickAddBtn.addEventListener("click", startNewTransaction);
   elements.toastUndoBtn.addEventListener("click", undoTransactionDeletion);
@@ -2475,24 +2748,53 @@ function bindEvents() {
     const button = event.target.closest("button[data-month]");
     if (button) changeMonth(button.dataset.month);
   });
-  [elements.typeFilter, elements.categoryFilter, elements.accountFilter, elements.startDateFilter, elements.endDateFilter, elements.sortFilter].forEach((input) => {
-    input.addEventListener("change", () => { transactionPage = 1; renderTransactions(); });
+  [
+    elements.typeFilter,
+    elements.categoryFilter,
+    elements.accountFilter,
+    elements.startDateFilter,
+    elements.endDateFilter,
+    elements.sortFilter,
+  ].forEach((input) => {
+    input.addEventListener("change", () => {
+      transactionPage = 1;
+      renderTransactions();
+    });
   });
-  elements.searchFilter.addEventListener("input", () => { transactionPage = 1; renderTransactions(); });
-  elements.previousPageBtn.addEventListener("click", () => { transactionPage -= 1; renderTransactions(); });
-  elements.nextPageBtn.addEventListener("click", () => { transactionPage += 1; renderTransactions(); });
+  elements.searchFilter.addEventListener("input", () => {
+    transactionPage = 1;
+    renderTransactions();
+  });
+  elements.previousPageBtn.addEventListener("click", () => {
+    transactionPage -= 1;
+    renderTransactions();
+  });
+  elements.nextPageBtn.addEventListener("click", () => {
+    transactionPage += 1;
+    renderTransactions();
+  });
   elements.clearFiltersBtn.addEventListener("click", () => {
     clearTransactionFilters();
     elements.sortFilter.value = "date-desc";
     renderTransactions();
   });
   elements.transactionForm.addEventListener("submit", handleTransactionSubmit);
-  elements.cancelEditBtn.addEventListener("click", resetForm);
+  elements.cancelEditBtn.addEventListener("click", () => {
+    resetForm();
+    BolsarioUI.closeTransaction();
+  });
   elements.transactionRows.addEventListener("click", handleTableClick);
+  document.querySelector("#recentTransactions").addEventListener("click", handleTableClick);
   elements.budgetForm.addEventListener("submit", handleBudgetSubmit);
   elements.budgetList.addEventListener("click", handleBudgetListClick);
   elements.archiveMonthBtn.addEventListener("click", archiveCurrentMonth);
-  elements.recurringType.addEventListener("change", () => populateCategorySelects(elements.category.value, elements.budgetCategory.value, getCategories(elements.recurringType.value)[0]));
+  elements.recurringType.addEventListener("change", () =>
+    populateCategorySelects(
+      elements.category.value,
+      elements.budgetCategory.value,
+      getCategories(elements.recurringType.value)[0],
+    ),
+  );
   elements.recurringForm.addEventListener("submit", handleRecurringSubmit);
   elements.cancelRecurringEditBtn.addEventListener("click", resetRecurringForm);
   elements.generateRecurringBtn.addEventListener("click", () => generateRecurringForMonth());
@@ -2510,7 +2812,9 @@ function bindEvents() {
   elements.setupForm.addEventListener("submit", handleSetupSubmit);
   elements.skipSetupBtn.addEventListener("click", skipSetup);
   elements.exportBtn.addEventListener("click", () => exportCsv());
-  elements.filteredExportBtn.addEventListener("click", () => exportCsv(getFilteredTransactions(), true));
+  elements.filteredExportBtn.addEventListener("click", () =>
+    exportCsv(getFilteredTransactions(), true),
+  );
   elements.backupBtn.addEventListener("click", exportBackup);
   elements.pdfBtn.addEventListener("click", exportPdf);
   elements.importBtn.addEventListener("click", () => elements.importFile.click());
@@ -2520,6 +2824,14 @@ function bindEvents() {
 
 function init() {
   renderIcons();
+  BolsarioUI.init({
+    newTransaction: startNewTransaction,
+    resetTransaction: resetForm,
+    clearFilters: () => {
+      clearTransactionFilters();
+      renderTransactions();
+    },
+  });
   elements.monthFilter.value = getCurrentMonth();
   elements.date.value = getTodayISO();
   elements.installmentStartMonth.value = getCurrentMonth();

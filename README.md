@@ -10,11 +10,11 @@ O app funciona sem servidor, banco de dados ou cadastro. Todas as informações 
 
 Principais telas:
 
-- **Resumo:** saldo do mês, entradas, gastos, taxa de economia, comparação com o mês anterior e resumo anual.
-- **Lançamentos:** cadastro, edição, duplicação, exclusão com opção de desfazer, filtros e busca de entradas e despesas.
+- **Resumo:** saldo em destaque, distribuição dos gastos, evolução anual e últimos lançamentos.
+- **Lançamentos:** histórico em largura total, cadastro e edição em diálogo, duplicação, exclusão com opção de desfazer, filtros e busca.
 - **Orçamento:** limites por categoria com barra de progresso e exclusão individual.
-- **Planejamento:** recorrências, compras parceladas, metas, arquivo mensal e projeção dos próximos seis meses.
-- **Perfil:** personalização de nome, objetivo financeiro, renda base, tema, cor principal e categorias.
+- **Planejamento:** subabas de previsão, recorrentes, parcelas e metas; arquivo mensal separado da rotina de cadastro.
+- **Perfil:** dados pessoais, aparência, editor visual de categorias e área de backup e exclusão de dados.
 
 ## Recursos
 
@@ -41,7 +41,7 @@ Principais telas:
 4. Defina limites em **Orçamento**.
 5. Acompanhe o mês em **Resumo**.
 6. Em **Planejamento**, organize recorrências, parcelas e metas.
-7. Use os botões superiores para baixar o backup completo, exportar CSV ou gerar PDF. Os botões têm nomes ao passar o mouse e rótulos para leitores de tela.
+7. Abra **Arquivos** para baixar backup, exportar CSV, gerar o relatório PDF ou importar um backup. No histórico, **CSV filtrado** exporta o resultado da busca.
 
 Ao duplicar um lançamento, o formulário abre para revisão antes de salvar. A cópia é manual, mesmo quando a origem é uma recorrência ou parcela. Após excluir um lançamento, **Desfazer** fica disponível por até 12 segundos, ou até outra ação mostrar uma nova mensagem.
 
@@ -66,10 +66,12 @@ A renda base serve para planejamento e cálculos percentuais; ela não cria auto
 - HTML
 - CSS
 - JavaScript puro
-- Ícones Lucide incluídos localmente
+- Manrope e ícones Lucide incluídos localmente, com suas licenças
+- TypeScript strict via JSDoc na camada de interface
+- ESLint, Prettier, Playwright e axe-core para validação
 - Vercel para publicação
 
-O projeto não depende de framework, build ou instalação de pacotes para funcionar.
+O app distribuído abre diretamente pelo `index.html`, sem framework ou instalação. O build de desenvolvimento prepara uma cópia estática em `dist/`, incluindo fontes e ícones locais.
 
 ## Estrutura
 
@@ -77,9 +79,10 @@ O projeto não depende de framework, build ou instalação de pacotes para funci
 .
 |-- index.html   # Estrutura das telas
 |-- styles.css   # Layout, tema e responsividade
-|-- app.js       # Regras de negócio, armazenamento e interações
-|-- vendor/      # Ícones locais e licença
-|-- scripts/     # Geração opcional do conjunto de ícones
+|-- app.js       # Regras financeiras, armazenamento e renderização de dados
+|-- interface.js # Diálogos, foco, subabas e editor visual
+|-- vendor/      # Fonte, ícones e licenças locais
+|-- scripts/     # Build estático e geração do conjunto de ícones
 |-- tests/       # Testes das regras e do navegador
 |-- docs/        # Registro de melhorias e continuidade
 `-- README.md    # Documentação do projeto
@@ -87,25 +90,36 @@ O projeto não depende de framework, build ou instalação de pacotes para funci
 
 ## Verificação
 
-O app continua abrindo diretamente pelo `index.html`, sem instalação. Para verificar as regras com Node.js:
+O app continua abrindo diretamente pelo `index.html`. Para desenvolver e validar, use Node.js 24 e Microsoft Edge:
 
 ```powershell
+npm.cmd ci
+npm.cmd run lint
+npm.cmd run typecheck
 npm.cmd test
+npm.cmd run build
+npm.cmd run test:browser
+npm.cmd run format:check
 ```
 
-Os testes de navegador usam Playwright e Microsoft Edge instalado, em um perfil isolado com dados fictícios:
+Os testes de navegador usam Playwright com perfil isolado e dados fictícios, nos temas claro/escuro e larguras 320, 390, 768, 1024 e 1440 px. Para testar a distribuição gerada:
 
 ```powershell
-npm.cmd install
+$env:BOLSARIO_TEST_DIST='1'
 npm.cmd run test:browser
 ```
 
-Resultados e capturas são gravados em `artifacts/`, ignorado pelo Git. O diálogo nativo de salvar PDF não é automatizado; o conteúdo e os estilos do relatório são verificados. Os ícones já acompanham o projeto; `npm.cmd run build:icons` só é necessário para regenerá-los.
+Capturas ficam em `artifacts/`; relatórios e traces em `playwright-report/` e `test-results/`. Essas pastas são ignoradas pelo Git. O diálogo nativo de salvar PDF não é automatizado; o conteúdo e os estilos do relatório são verificados. `npm.cmd run format` aplica o padrão do Prettier.
+
+O typecheck estrito cobre `interface.js`, a configuração e os novos testes de navegador. O motor financeiro legado em `app.js` permanece JavaScript, coberto por lint e testes unitários: não houve conversão artificial de todo o projeto para TypeScript. Configurações seguem as documentações de [TypeScript](https://www.typescriptlang.org/tsconfig/checkJs.html), [Playwright](https://playwright.dev/docs/test-configuration) e [ESLint](https://eslint.org/docs/latest/use/configure/configuration-files).
+
+A auditoria, a direção visual e os limites da validação estão em [Auditoria da interface](docs/INTERFACE-AUDIT.md). Orientações para futuras alterações estão em [AGENTS.md](AGENTS.md).
+
+Os resultados da reformulação, as correções da segunda rodada visual e os limites dos testes estão em [Revisão da implementação](docs/INTERFACE-VALIDATION.md).
 
 ## Ideias Futuras
 
 - Instalação como PWA.
-- Divisão da tela de planejamento em subtelas.
 - Importação assistida de extratos CSV, com prévia e prevenção de duplicatas.
 - Resumo por trimestre.
 

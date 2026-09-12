@@ -4,17 +4,21 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Bolsário | Controle Pessoal</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230f766e'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-family='Arial,sans-serif' font-size='34' font-weight='700' fill='white'%3EB%3C/text%3E%3C/svg%3E" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230f766e'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-family='Arial,sans-serif' font-size='34' font-weight='700' fill='white'%3EB%3C/text%3E%3C/svg%3E"
+    />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <a class="skip-link" href="#mainContent">Ir para o conteúdo</a>
     <div class="app-shell">
       <aside class="sidebar" aria-label="Navegação principal">
         <div class="brand">
           <div class="brand-mark" id="brandMark" aria-hidden="true">B</div>
           <div>
             <p class="eyebrow" id="appNameLabel">Bolsário</p>
-            <h1 id="brandTitle">Controle pessoal</h1>
+            <p id="brandTitle">Finanças pessoais</p>
           </div>
         </div>
 
@@ -57,42 +61,90 @@
         </div>
       </aside>
 
-      <main class="workspace">
+      <main class="workspace" id="mainContent" tabindex="-1">
         <header class="topbar">
           <div>
             <p class="eyebrow" id="topbarEyebrow">Painel financeiro pessoal</p>
-            <h2 id="topbarTitle">Organize o mês antes que ele organize você.</h2>
+            <h1 id="topbarTitle">Resumo</h1>
           </div>
           <div class="topbar-actions">
             <div class="month-picker" role="group" aria-label="Mês de referência">
-              <button class="icon-button" id="previousMonthBtn" type="button" title="Mês anterior" aria-label="Mês anterior"><span data-icon="ChevronLeft"></span></button>
-              <input id="monthFilter" type="month" aria-label="Mês de referência" min="0100-01" max="9998-12" />
-              <button class="icon-button" id="nextMonthBtn" type="button" title="Próximo mês" aria-label="Próximo mês"><span data-icon="ChevronRight"></span></button>
+              <button
+                class="icon-button"
+                id="previousMonthBtn"
+                type="button"
+                title="Mês anterior"
+                aria-label="Mês anterior"
+              >
+                <span data-icon="ChevronLeft"></span>
+              </button>
+              <input
+                id="monthFilter"
+                type="month"
+                aria-label="Mês de referência"
+                min="0100-01"
+                max="9998-12"
+              />
+              <button
+                class="icon-button"
+                id="nextMonthBtn"
+                type="button"
+                title="Próximo mês"
+                aria-label="Próximo mês"
+              >
+                <span data-icon="ChevronRight"></span>
+              </button>
+              <button
+                class="icon-button"
+                id="currentMonthBtn"
+                type="button"
+                title="Voltar ao mês atual"
+                aria-label="Voltar ao mês atual"
+              >
+                <span data-icon="CalendarDays"></span>
+              </button>
             </div>
-            <button class="primary-button quick-add" id="quickAddBtn" type="button"><span data-icon="Plus"></span>Novo lançamento</button>
-            <div class="file-actions" role="group" aria-label="Arquivos e atalhos">
-            <button class="icon-button" id="currentMonthBtn" type="button" title="Voltar ao mês atual" aria-label="Voltar ao mês atual"><span data-icon="CalendarDays"></span></button>
-            <button class="icon-button" id="backupBtn" type="button" title="Baixar backup completo (JSON)" aria-label="Baixar backup completo (JSON)"><span data-icon="DatabaseBackup"></span></button>
-            <button class="icon-button" id="exportBtn" type="button" title="Exportar CSV" aria-label="Exportar CSV">
-              <span data-icon="Download"></span>
+            <button class="primary-button quick-add" id="quickAddBtn" type="button">
+              <span data-icon="Plus"></span>Novo lançamento
             </button>
-            <button class="icon-button" id="pdfBtn" type="button" title="Arquivar em PDF" aria-label="Arquivar em PDF">
-              <span data-icon="FileText"></span>
-            </button>
-            <button class="icon-button" id="importBtn" type="button" title="Importar JSON" aria-label="Importar JSON">
-              <span data-icon="Upload"></span>
-            </button>
-            <input id="importFile" class="visually-hidden" type="file" accept="application/json,.json" />
-            </div>
+            <details class="file-actions" id="fileMenu">
+              <summary class="ghost-button">
+                <span data-icon="FolderOpen"></span>Arquivos<span data-icon="ChevronDown"></span>
+              </summary>
+              <div class="file-menu" role="group" aria-label="Arquivos">
+                <button id="backupBtn" type="button">
+                  <span data-icon="DatabaseBackup"></span>Backup completo <small>JSON</small>
+                </button>
+                <button id="exportBtn" type="button">
+                  <span data-icon="Download"></span>Exportar lançamentos <small>CSV</small>
+                </button>
+                <button id="pdfBtn" type="button">
+                  <span data-icon="FileText"></span>Relatório do mês <small>PDF</small>
+                </button>
+                <button id="importBtn" type="button">
+                  <span data-icon="Upload"></span>Importar backup <small>JSON</small>
+                </button>
+              </div>
+            </details>
+            <input id="importFile" class="hidden" type="file" accept="application/json,.json" />
           </div>
         </header>
+        <div
+          class="operation-status hidden"
+          id="operationStatus"
+          role="status"
+          aria-live="polite"
+        ></div>
 
         <div class="view-stack">
-          <section id="resumo" class="view summary-view active" data-view="resumo" aria-label="Resumo do mês">
-            <section class="status-strip" id="insightBox" aria-live="polite"></section>
-
+          <section
+            id="resumo"
+            class="view summary-view active"
+            data-view="resumo"
+            aria-label="Resumo do mês"
+          >
             <section class="metric-grid" aria-label="Resumo do mês">
-              <article class="metric-card">
+              <article class="metric-card balance-metric">
                 <span>Saldo do mês</span>
                 <strong id="balanceValue">R$ 0,00</strong>
                 <small id="balanceHint">Sem lançamentos ainda</small>
@@ -113,31 +165,33 @@
                 <small id="savingHint">Ideal: 20% ou mais</small>
               </article>
             </section>
+            <section class="status-strip" id="insightBox" aria-live="polite"></section>
 
             <section class="month-comparison" aria-labelledby="comparisonTitle">
-              <div><p class="eyebrow">Evolução mensal</p><h3 id="comparisonTitle">Em relação ao mês anterior</h3></div>
+              <div><h2 id="comparisonTitle">Comparativo mensal</h2></div>
               <div id="monthComparison" class="comparison-values"></div>
             </section>
 
             <section class="panel chart-panel" aria-labelledby="chartTitle">
               <div class="panel-heading">
                 <div>
-                  <p class="eyebrow">Mapa do dinheiro</p>
-                  <h3 id="chartTitle">Gastos por categoria</h3>
+                  <h2 id="chartTitle">Destino dos gastos</h2>
                 </div>
                 <span class="pill" id="topCategory">Sem dados</span>
               </div>
-              <div class="chart-wrap">
-                <canvas id="categoryChart" width="760" height="360" aria-label="Gráfico de gastos por categoria"></canvas>
-              </div>
-              <div class="legend" id="categoryLegend"></div>
+              <div
+                id="categoryLegend"
+                class="distribution-list"
+                role="list"
+                aria-label="Gastos por categoria"
+                tabindex="0"
+              ></div>
             </section>
 
             <section class="panel annual-panel" aria-labelledby="annualTitle">
               <div class="panel-heading">
                 <div>
-                  <p class="eyebrow">Ano selecionado</p>
-                  <h3 id="annualTitle">Resumo anual</h3>
+                  <h2 id="annualTitle">Movimento do ano</h2>
                 </div>
                 <span class="pill" id="annualYearLabel">Ano</span>
               </div>
@@ -160,105 +214,190 @@
                 </article>
               </section>
               <div id="annualMonthList" class="annual-month-list"></div>
+              <p id="annualDetail" class="chart-detail" aria-live="polite"></p>
+            </section>
+            <section class="panel recent-panel" aria-labelledby="recentTitle">
+              <div class="panel-heading">
+                <h2 id="recentTitle">Últimos lançamentos</h2>
+                <a class="text-link" href="#lancamentos"
+                  >Ver todos <span data-icon="ArrowUpRight"></span
+                ></a>
+              </div>
+              <div id="recentTransactions" class="recent-list"></div>
             </section>
           </section>
 
-          <section id="lancamentos" class="view transaction-view" data-view="lancamentos" aria-labelledby="transactionsTitle">
+          <section
+            id="lancamentos"
+            class="view transaction-view"
+            data-view="lancamentos"
+            aria-labelledby="transactionsTitle"
+          >
             <section class="content-grid">
-              <form id="transactionForm" class="panel form-panel" autocomplete="off">
-                <div class="panel-heading">
-                  <div>
-                    <p class="eyebrow">Novo lançamento</p>
-                    <h3 id="formTitle">Adicionar gasto ou entrada</h3>
+              <dialog id="transactionDialog" class="editor-dialog" aria-labelledby="formTitle">
+                <form id="transactionForm" class="panel form-panel" autocomplete="off">
+                  <div class="panel-heading">
+                    <div>
+                      <h2 id="formTitle">Novo lançamento</h2>
+                    </div>
+                    <button class="ghost-button hidden" id="cancelEditBtn" type="button">
+                      Cancelar edição
+                    </button>
+                    <button
+                      class="icon-button dialog-close"
+                      id="closeTransactionBtn"
+                      type="button"
+                      aria-label="Fechar lançamento"
+                      title="Fechar lançamento"
+                    >
+                      <span data-icon="X"></span>
+                    </button>
                   </div>
-                  <button class="ghost-button hidden" id="cancelEditBtn" type="button">Cancelar edição</button>
-                </div>
 
-                <input id="editingId" type="hidden" />
+                  <input id="editingId" type="hidden" />
 
-                <div class="segmented" role="group" aria-label="Tipo de lançamento">
-                  <input id="typeExpense" name="type" type="radio" value="expense" checked />
-                  <label for="typeExpense">Gasto</label>
-                  <input id="typeIncome" name="type" type="radio" value="income" />
-                  <label for="typeIncome">Entrada</label>
-                </div>
+                  <div class="segmented" role="group" aria-label="Tipo de lançamento">
+                    <input id="typeExpense" name="type" type="radio" value="expense" checked />
+                    <label for="typeExpense">Gasto</label>
+                    <input id="typeIncome" name="type" type="radio" value="income" />
+                    <label for="typeIncome">Entrada</label>
+                  </div>
 
-                <div class="form-row">
-                  <label for="description">Descrição</label>
-                  <input id="description" name="description" type="text" placeholder="Ex.: mercado, salário, aluguel" required />
-                </div>
-
-                <div class="form-columns">
                   <div class="form-row">
-                    <label for="amount">Valor</label>
-                    <input id="amount" name="amount" type="number" min="0.01" step="0.01" placeholder="0,00" required />
+                    <label for="description">Descrição</label>
+                    <input
+                      id="description"
+                      name="description"
+                      type="text"
+                      placeholder="Ex.: mercado, salário, aluguel"
+                      required
+                    />
                   </div>
+
+                  <div class="form-columns">
+                    <div class="form-row">
+                      <label for="amount">Valor</label>
+                      <input
+                        id="amount"
+                        name="amount"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        placeholder="0,00"
+                        required
+                      />
+                    </div>
+                    <div class="form-row">
+                      <label for="date">Data</label>
+                      <input id="date" name="date" type="date" required />
+                    </div>
+                  </div>
+
                   <div class="form-row">
-                    <label for="date">Data</label>
-                    <input id="date" name="date" type="date" required />
+                    <label for="category">Categoria</label>
+                    <select id="category" name="category" required></select>
                   </div>
-                </div>
 
-                <div class="form-row">
-                  <label for="category">Categoria</label>
-                  <select id="category" name="category" required></select>
-                </div>
+                  <div class="form-row">
+                    <label for="account">Conta</label>
+                    <select id="account" name="account">
+                      <option value="Carteira">Carteira</option>
+                      <option value="Conta corrente">Conta corrente</option>
+                      <option value="Cartão de crédito">Cartão de crédito</option>
+                      <option value="Pix">Pix</option>
+                      <option value="Investimentos">Investimentos</option>
+                    </select>
+                  </div>
 
-                <div class="form-row">
-                  <label for="account">Conta</label>
-                  <select id="account" name="account">
-                    <option value="Carteira">Carteira</option>
-                    <option value="Conta corrente">Conta corrente</option>
-                    <option value="Cartão de crédito">Cartão de crédito</option>
-                    <option value="Pix">Pix</option>
-                    <option value="Investimentos">Investimentos</option>
-                  </select>
-                </div>
+                  <div class="form-row">
+                    <label for="notes">Observação</label>
+                    <textarea id="notes" name="notes" rows="3" placeholder="Opcional"></textarea>
+                  </div>
 
-                <div class="form-row">
-                  <label for="notes">Observação</label>
-                  <textarea id="notes" name="notes" rows="3" placeholder="Opcional"></textarea>
-                </div>
-
-                <button class="primary-button" type="submit">
-                  <span class="icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z" /></svg>
-                  </span>
-                  Salvar lançamento
-                </button>
-              </form>
+                  <button class="primary-button" type="submit">
+                    <span class="icon" aria-hidden="true">
+                      <span data-icon="Check"></span>
+                    </span>
+                    Salvar lançamento
+                  </button>
+                </form>
+              </dialog>
 
               <section class="panel table-panel" aria-labelledby="transactionsTitle">
                 <div class="panel-heading wrap-heading">
                   <div>
-                    <p class="eyebrow">Histórico</p>
-                    <h3 id="transactionsTitle">Lançamentos</h3>
+                    <h2 id="transactionsTitle">Histórico do período</h2>
                   </div>
-                  <button class="ghost-button" id="filteredExportBtn" type="button"><span data-icon="Download"></span>CSV filtrado</button>
+                  <button class="ghost-button" id="filteredExportBtn" type="button">
+                    <span data-icon="Download"></span>CSV filtrado
+                  </button>
                 </div>
-                  <div class="filter-row advanced-filters">
-                    <select id="typeFilter" aria-label="Filtrar por tipo">
-                      <option value="all">Todos</option>
-                      <option value="expense">Gastos</option>
-                      <option value="income">Entradas</option>
-                    </select>
+                <div class="search-toolbar">
+                  <label class="search-field"
+                    ><span data-icon="Search"></span
+                    ><input
+                      id="searchFilter"
+                      type="search"
+                      placeholder="Buscar lançamentos"
+                      aria-label="Buscar lançamentos"
+                  /></label>
+                  <select id="typeFilter" aria-label="Filtrar por tipo">
+                    <option value="all">Todos</option>
+                    <option value="expense">Gastos</option>
+                    <option value="income">Entradas</option>
+                  </select>
+                  <button
+                    class="ghost-button"
+                    id="toggleFiltersBtn"
+                    type="button"
+                    aria-expanded="false"
+                    aria-controls="advancedFilters"
+                  >
+                    <span data-icon="SlidersHorizontal"></span>Filtros<span
+                      id="filterCount"
+                      class="filter-count hidden"
+                    ></span>
+                  </button>
+                </div>
+                <div class="filter-row advanced-filters" id="advancedFilters" hidden>
+                  <label class="date-filter"
+                    >Categoria
                     <select id="categoryFilter" aria-label="Filtrar por categoria">
                       <option value="all">Todas categorias</option>
                     </select>
+                  </label>
+                  <label class="date-filter"
+                    >Conta
                     <select id="accountFilter" aria-label="Filtrar por conta">
                       <option value="all">Todas contas</option>
                     </select>
-                    <label class="date-filter">De<input id="startDateFilter" type="date" aria-label="Data inicial" /></label>
-                    <label class="date-filter">Até<input id="endDateFilter" type="date" aria-label="Data final" /></label>
-                    <input id="searchFilter" type="search" placeholder="Buscar descrição, categoria..." aria-label="Buscar lançamentos" />
-                    <button class="icon-button" id="clearFiltersBtn" type="button" title="Limpar filtros" aria-label="Limpar filtros"><span data-icon="FilterX"></span></button>
-                  </div>
-                <p id="filterError" class="field-error hidden" role="alert">A data final precisa ser igual ou posterior à inicial.</p>
+                  </label>
+                  <label class="date-filter"
+                    >De<input id="startDateFilter" type="date" aria-label="Data inicial"
+                  /></label>
+                  <label class="date-filter"
+                    >Até<input id="endDateFilter" type="date" aria-label="Data final"
+                  /></label>
+                  <button
+                    class="icon-button"
+                    id="clearFiltersBtn"
+                    type="button"
+                    title="Limpar filtros"
+                    aria-label="Limpar filtros"
+                  >
+                    <span data-icon="FilterX"></span>
+                  </button>
+                </div>
+                <p id="filterError" class="field-error hidden" role="alert">
+                  A data final precisa ser igual ou posterior à inicial.
+                </p>
                 <div class="results-toolbar">
                   <span id="filterPeriod" class="results-period"></span>
                   <select id="sortFilter" aria-label="Ordenar lançamentos">
-                    <option value="date-desc">Mais recentes</option><option value="date-asc">Mais antigos</option>
-                    <option value="amount-desc">Maior valor</option><option value="amount-asc">Menor valor</option>
+                    <option value="date-desc">Mais recentes</option>
+                    <option value="date-asc">Mais antigos</option>
+                    <option value="amount-desc">Maior valor</option>
+                    <option value="amount-asc">Menor valor</option>
                     <option value="description">Descrição A–Z</option>
                   </select>
                 </div>
@@ -280,14 +419,34 @@
                   </table>
                 </div>
                 <div id="emptyState" class="empty-state hidden">
+                  <span class="empty-icon" data-icon="List"></span>
                   <strong>Nenhum lançamento encontrado.</strong>
                   <span id="emptyStateHint">Sem lançamentos neste mês.</span>
+                  <button class="ghost-button" id="emptyActionBtn" type="button">
+                    <span data-icon="Plus"></span>Adicionar lançamento
+                  </button>
                 </div>
                 <div class="pagination" id="transactionPagination">
                   <span id="pageInfo" aria-live="polite"></span>
                   <div class="row-actions">
-                    <button class="icon-button" id="previousPageBtn" type="button" title="Página anterior" aria-label="Página anterior"><span data-icon="ChevronLeft"></span></button>
-                    <button class="icon-button" id="nextPageBtn" type="button" title="Próxima página" aria-label="Próxima página"><span data-icon="ChevronRight"></span></button>
+                    <button
+                      class="icon-button"
+                      id="previousPageBtn"
+                      type="button"
+                      title="Página anterior"
+                      aria-label="Página anterior"
+                    >
+                      <span data-icon="ChevronLeft"></span>
+                    </button>
+                    <button
+                      class="icon-button"
+                      id="nextPageBtn"
+                      type="button"
+                      title="Próxima página"
+                      aria-label="Próxima página"
+                    >
+                      <span data-icon="ChevronRight"></span>
+                    </button>
                   </div>
                 </div>
               </section>
@@ -295,11 +454,19 @@
           </section>
 
           <section id="orcamento" class="view content-grid budget-section" data-view="orcamento">
+            <section class="panel budget-panel" aria-labelledby="budgetTitle">
+              <div class="panel-heading">
+                <div>
+                  <h2 id="budgetTitle">Planejado e realizado</h2>
+                </div>
+                <span class="pill" id="budgetSummary">0 categorias</span>
+              </div>
+              <div id="budgetList" class="budget-list"></div>
+            </section>
             <form id="budgetForm" class="panel form-panel" autocomplete="off">
               <div class="panel-heading">
                 <div>
-                  <p class="eyebrow">Limites mensais</p>
-                  <h3>Orçamento por categoria</h3>
+                  <h2>Definir limite</h2>
                 </div>
               </div>
 
@@ -314,60 +481,128 @@
                 </div>
                 <div class="form-row">
                   <label for="budgetPercent">% da renda</label>
-                  <input id="budgetPercent" type="number" min="0" step="0.1" placeholder="Ex.: 15" />
+                  <input
+                    id="budgetPercent"
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    placeholder="Ex.: 15"
+                  />
                 </div>
               </div>
               <button class="primary-button" type="submit">
                 <span class="icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24"><path d="M5 4h14v2H5V4Zm1 4h12l-1.4 12H7.4L6 8Zm4 2v8h2v-8h-2Zm4 0v8h2v-8h-2Z" /></svg>
+                  <span data-icon="Check"></span>
                 </span>
                 Salvar orçamento
               </button>
             </form>
-
-            <section class="panel budget-panel" aria-labelledby="budgetTitle">
-              <div class="panel-heading">
-                <div>
-                  <p class="eyebrow">Acompanhamento</p>
-                  <h3 id="budgetTitle">Uso do orçamento</h3>
-                </div>
-                <span class="pill" id="budgetSummary">0 categorias</span>
-              </div>
-              <div id="budgetList" class="budget-list"></div>
-            </section>
           </section>
 
-          <section id="planejamento" class="view planning-view" data-view="planejamento" aria-labelledby="planningTitle">
-            <section class="panel planning-hero" aria-labelledby="planningTitle">
-              <div class="panel-heading">
-                <div>
-                  <p class="eyebrow">Rotina financeira</p>
-                  <h3 id="planningTitle">Planejamento</h3>
+          <section
+            id="planejamento"
+            class="view planning-view"
+            data-view="planejamento"
+            aria-labelledby="planningTitle"
+          >
+            <nav class="subnav" data-tabs="planning" aria-label="Planejamento" role="tablist">
+              <button
+                id="tab-forecast"
+                type="button"
+                role="tab"
+                data-tab="forecast"
+                aria-controls="planning-forecast"
+                aria-selected="true"
+              >
+                Previsão
+              </button>
+              <button
+                id="tab-recurring"
+                type="button"
+                role="tab"
+                data-tab="recurring"
+                aria-controls="planning-recurring"
+                aria-selected="false"
+                tabindex="-1"
+              >
+                Recorrentes
+              </button>
+              <button
+                id="tab-installments"
+                type="button"
+                role="tab"
+                data-tab="installments"
+                aria-controls="planning-installments"
+                aria-selected="false"
+                tabindex="-1"
+              >
+                Parcelas
+              </button>
+              <button
+                id="tab-goals"
+                type="button"
+                role="tab"
+                data-tab="goals"
+                aria-controls="planning-goals"
+                aria-selected="false"
+                tabindex="-1"
+              >
+                Metas
+              </button>
+            </nav>
+            <div
+              id="planning-forecast"
+              role="tabpanel"
+              aria-labelledby="tab-forecast"
+              data-panel="planning:forecast"
+              class="forecast-layout"
+            >
+              <section class="panel planning-hero" aria-labelledby="planningTitle">
+                <div class="panel-heading">
+                  <div>
+                    <h2 id="planningTitle">Meses arquivados</h2>
+                  </div>
+                  <button class="ghost-button" id="archiveMonthBtn" type="button">
+                    <span data-icon="Archive"></span>Arquivar mês
+                  </button>
                 </div>
-                <button class="ghost-button danger-button" id="archiveMonthBtn" type="button">Arquivar mês</button>
-              </div>
-              <div id="archiveList" class="archive-list"></div>
-            </section>
+                <div id="archiveList" class="archive-list"></div>
+              </section>
 
-            <section class="panel future-flow-panel" aria-labelledby="futureFlowTitle">
-              <div class="panel-heading">
-                <div>
-                  <p class="eyebrow">Próximos meses</p>
-                  <h3 id="futureFlowTitle">Fluxo fixo previsto</h3>
+              <section class="panel future-flow-panel" aria-labelledby="futureFlowTitle">
+                <div class="panel-heading">
+                  <div>
+                    <h2 id="futureFlowTitle">Próximos seis meses</h2>
+                  </div>
+                  <span class="pill" id="futureFlowSummary">0 meses</span>
                 </div>
-                <span class="pill" id="futureFlowSummary">0 meses</span>
-              </div>
-              <div id="futureFlowList" class="future-flow-list"></div>
-            </section>
+                <div id="futureFlowList" class="future-flow-list"></div>
+              </section>
+            </div>
 
-            <section class="content-grid planning-grid">
+            <section
+              id="planning-recurring"
+              role="tabpanel"
+              aria-labelledby="tab-recurring"
+              data-panel="planning:recurring"
+              class="content-grid planning-grid"
+              hidden
+            >
+              <section class="panel list-panel" aria-labelledby="recurringListTitle">
+                <div class="panel-heading">
+                  <h3 id="recurringListTitle">Lançamentos recorrentes</h3>
+                  <button class="ghost-button" id="generateRecurringBtn" type="button">
+                    <span data-icon="Repeat"></span>Gerar mês
+                  </button>
+                </div>
+                <div id="recurringList" class="compact-list"></div>
+              </section>
               <form id="recurringForm" class="panel form-panel" autocomplete="off">
                 <div class="panel-heading">
                   <div>
                     <p class="eyebrow">Automático</p>
                     <h3 id="recurringFormTitle">Recorrentes</h3>
                   </div>
-                  <button class="ghost-button" id="generateRecurringBtn" type="button">Gerar mês</button>
                 </div>
                 <input id="recurringEditingId" name="recurringEditingId" type="hidden" />
                 <div class="form-columns">
@@ -380,21 +615,47 @@
                   </div>
                   <div class="form-row">
                     <label for="recurringDay">Dia</label>
-                    <input id="recurringDay" name="recurringDay" type="number" min="1" max="31" value="1" required />
+                    <input
+                      id="recurringDay"
+                      name="recurringDay"
+                      type="number"
+                      min="1"
+                      max="31"
+                      value="1"
+                      required
+                    />
                   </div>
                 </div>
                 <div class="form-row">
                   <label for="recurringDescription">Descrição</label>
-                  <input id="recurringDescription" name="recurringDescription" type="text" required />
+                  <input
+                    id="recurringDescription"
+                    name="recurringDescription"
+                    type="text"
+                    required
+                  />
                 </div>
                 <div class="form-columns">
                   <div class="form-row">
                     <label for="recurringAmount">Valor em R$</label>
-                    <input id="recurringAmount" name="recurringAmount" type="number" min="0.01" step="0.01" />
+                    <input
+                      id="recurringAmount"
+                      name="recurringAmount"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                    />
                   </div>
                   <div class="form-row">
                     <label for="recurringPercent">% da renda</label>
-                    <input id="recurringPercent" name="recurringPercent" type="number" min="0" step="0.1" placeholder="Ex.: 8" />
+                    <input
+                      id="recurringPercent"
+                      name="recurringPercent"
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      placeholder="Ex.: 8"
+                    />
                   </div>
                 </div>
                 <div class="form-row">
@@ -410,23 +671,30 @@
                   <textarea id="recurringNotes" name="recurringNotes" rows="2"></textarea>
                 </div>
                 <div class="button-row">
-                  <button class="primary-button" id="recurringSubmitBtn" type="submit">Salvar recorrente</button>
-                  <button class="ghost-button hidden" id="cancelRecurringEditBtn" type="button">Cancelar edição</button>
+                  <button class="primary-button" id="recurringSubmitBtn" type="submit">
+                    Salvar recorrente
+                  </button>
+                  <button class="ghost-button hidden" id="cancelRecurringEditBtn" type="button">
+                    Cancelar edição
+                  </button>
                 </div>
               </form>
-
-              <section class="panel list-panel" aria-labelledby="recurringListTitle">
-                <div class="panel-heading">
-                  <div>
-                    <p class="eyebrow">Agenda</p>
-                    <h3 id="recurringListTitle">Lançamentos recorrentes</h3>
-                  </div>
-                </div>
-                <div id="recurringList" class="compact-list"></div>
-              </section>
             </section>
 
-            <section class="content-grid planning-grid">
+            <section
+              id="planning-installments"
+              role="tabpanel"
+              aria-labelledby="tab-installments"
+              data-panel="planning:installments"
+              class="content-grid planning-grid"
+              hidden
+            >
+              <section class="panel list-panel" aria-labelledby="installmentListTitle">
+                <div class="panel-heading">
+                  <h3 id="installmentListTitle">Compras parceladas</h3>
+                </div>
+                <div id="installmentList" class="compact-list"></div>
+              </section>
               <form id="installmentForm" class="panel form-panel" autocomplete="off">
                 <div class="panel-heading">
                   <div>
@@ -437,22 +705,47 @@
                 <input id="installmentEditingId" name="installmentEditingId" type="hidden" />
                 <div class="form-row">
                   <label for="installmentDescription">Descrição</label>
-                  <input id="installmentDescription" name="installmentDescription" type="text" required />
+                  <input
+                    id="installmentDescription"
+                    name="installmentDescription"
+                    type="text"
+                    required
+                  />
                 </div>
                 <div class="form-columns">
                   <div class="form-row">
                     <label for="installmentTotal">Valor total</label>
-                    <input id="installmentTotal" name="installmentTotal" type="number" min="0.01" step="0.01" required />
+                    <input
+                      id="installmentTotal"
+                      name="installmentTotal"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      required
+                    />
                   </div>
                   <div class="form-row">
                     <label for="installmentCount">Parcelas</label>
-                    <input id="installmentCount" name="installmentCount" type="number" min="2" max="60" value="2" required />
+                    <input
+                      id="installmentCount"
+                      name="installmentCount"
+                      type="number"
+                      min="2"
+                      max="60"
+                      value="2"
+                      required
+                    />
                   </div>
                 </div>
                 <div class="form-columns">
                   <div class="form-row">
                     <label for="installmentStartMonth">Mês inicial</label>
-                    <input id="installmentStartMonth" name="installmentStartMonth" type="month" required />
+                    <input
+                      id="installmentStartMonth"
+                      name="installmentStartMonth"
+                      type="month"
+                      required
+                    />
                   </div>
                   <div class="form-row">
                     <label for="installmentCategory">Categoria</label>
@@ -468,23 +761,30 @@
                   <textarea id="installmentNotes" name="installmentNotes" rows="2"></textarea>
                 </div>
                 <div class="button-row">
-                  <button class="primary-button" id="installmentSubmitBtn" type="submit">Criar parcelas</button>
-                  <button class="ghost-button hidden" id="cancelInstallmentEditBtn" type="button">Cancelar edição</button>
+                  <button class="primary-button" id="installmentSubmitBtn" type="submit">
+                    Criar parcelas
+                  </button>
+                  <button class="ghost-button hidden" id="cancelInstallmentEditBtn" type="button">
+                    Cancelar edição
+                  </button>
                 </div>
               </form>
-
-              <section class="panel list-panel" aria-labelledby="installmentListTitle">
-                <div class="panel-heading">
-                  <div>
-                    <p class="eyebrow">Histórico</p>
-                    <h3 id="installmentListTitle">Compras parceladas</h3>
-                  </div>
-                </div>
-                <div id="installmentList" class="compact-list"></div>
-              </section>
             </section>
 
-            <section class="content-grid planning-grid">
+            <section
+              id="planning-goals"
+              role="tabpanel"
+              aria-labelledby="tab-goals"
+              data-panel="planning:goals"
+              class="content-grid planning-grid"
+              hidden
+            >
+              <section class="panel list-panel" aria-labelledby="goalsListTitle">
+                <div class="panel-heading">
+                  <h3 id="goalsListTitle">Metas financeiras</h3>
+                </div>
+                <div id="goalsList" class="compact-list"></div>
+              </section>
               <form id="goalForm" class="panel form-panel" autocomplete="off">
                 <div class="panel-heading">
                   <div>
@@ -504,17 +804,38 @@
                   </div>
                   <div class="form-row">
                     <label for="goalTargetPercent">Alvo em % da renda</label>
-                    <input id="goalTargetPercent" name="goalTargetPercent" type="number" min="0" step="0.1" placeholder="Ex.: 100" />
+                    <input
+                      id="goalTargetPercent"
+                      name="goalTargetPercent"
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      placeholder="Ex.: 100"
+                    />
                   </div>
                 </div>
                 <div class="form-columns">
                   <div class="form-row">
                     <label for="goalCurrent">Valor atual em R$</label>
-                    <input id="goalCurrent" name="goalCurrent" type="number" min="0" step="0.01" value="0" />
+                    <input
+                      id="goalCurrent"
+                      name="goalCurrent"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value="0"
+                    />
                   </div>
                   <div class="form-row">
                     <label for="goalCurrentPercent">Atual em % da renda</label>
-                    <input id="goalCurrentPercent" name="goalCurrentPercent" type="number" min="0" step="0.1" placeholder="Ex.: 25" />
+                    <input
+                      id="goalCurrentPercent"
+                      name="goalCurrentPercent"
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      placeholder="Ex.: 25"
+                    />
                   </div>
                 </div>
                 <div class="form-row">
@@ -522,113 +843,282 @@
                   <input id="goalDueDate" name="goalDueDate" type="date" />
                 </div>
                 <div class="button-row">
-                  <button class="primary-button" id="goalSubmitBtn" type="submit">Salvar meta</button>
-                  <button class="ghost-button hidden" id="cancelGoalEditBtn" type="button">Cancelar edição</button>
+                  <button class="primary-button" id="goalSubmitBtn" type="submit">
+                    Salvar meta
+                  </button>
+                  <button class="ghost-button hidden" id="cancelGoalEditBtn" type="button">
+                    Cancelar edição
+                  </button>
                 </div>
               </form>
-
-              <section class="panel list-panel" aria-labelledby="goalsListTitle">
-                <div class="panel-heading">
-                  <div>
-                    <p class="eyebrow">Progresso</p>
-                    <h3 id="goalsListTitle">Metas financeiras</h3>
-                  </div>
-                </div>
-                <div id="goalsList" class="compact-list"></div>
-              </section>
             </section>
           </section>
 
-          <section id="perfil" class="view profile-view" data-view="perfil" aria-labelledby="profileTitle">
+          <section
+            id="perfil"
+            class="view profile-view"
+            data-view="perfil"
+            aria-labelledby="profileTitle"
+          >
+            <nav
+              class="subnav"
+              data-tabs="profile"
+              aria-label="Configurações do perfil"
+              role="tablist"
+            >
+              <button
+                id="tab-personal"
+                type="button"
+                role="tab"
+                data-tab="personal"
+                aria-controls="profile-personal"
+                aria-selected="true"
+              >
+                Dados pessoais
+              </button>
+              <button
+                id="tab-appearance"
+                type="button"
+                role="tab"
+                data-tab="appearance"
+                aria-controls="profile-appearance"
+                aria-selected="false"
+                tabindex="-1"
+              >
+                Aparência
+              </button>
+              <button
+                id="tab-categories"
+                type="button"
+                role="tab"
+                data-tab="categories"
+                aria-controls="profile-categories"
+                aria-selected="false"
+                tabindex="-1"
+              >
+                Categorias
+              </button>
+              <button
+                id="tab-data"
+                type="button"
+                role="tab"
+                data-tab="data"
+                aria-controls="profile-data"
+                aria-selected="false"
+                tabindex="-1"
+              >
+                Dados e backup
+              </button>
+            </nav>
             <section class="content-grid profile-grid">
               <form id="profileForm" class="panel form-panel" autocomplete="off">
-                <div class="panel-heading">
-                  <div>
-                    <p class="eyebrow">Personalização</p>
-                    <h3 id="profileTitle">Perfil de uso</h3>
+                <div
+                  id="profile-personal"
+                  data-panel="profile:personal"
+                  role="tabpanel"
+                  aria-labelledby="tab-personal"
+                  class="settings-group"
+                >
+                  <div class="panel-heading">
+                    <div>
+                      <h2 id="profileTitle">Seu planejamento começa aqui</h2>
+                    </div>
+                  </div>
+
+                  <div class="form-columns">
+                    <div class="form-row">
+                      <label for="personName">Nome da pessoa</label>
+                      <input
+                        id="personName"
+                        name="personName"
+                        type="text"
+                        maxlength="40"
+                        placeholder="Ex.: Edu"
+                      />
+                    </div>
+                    <div class="form-row">
+                      <label for="customAppName">Nome do app</label>
+                      <input
+                        id="customAppName"
+                        name="customAppName"
+                        type="text"
+                        maxlength="32"
+                        placeholder="Ex.: Bolsário"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="form-columns">
+                    <div class="form-row">
+                      <label for="profileGoal">Objetivo financeiro</label>
+                      <select id="profileGoal" name="profileGoal">
+                        <option value="Controlar gastos">Controlar gastos</option>
+                        <option value="Guardar dinheiro">Guardar dinheiro</option>
+                        <option value="Quitar dívidas">Quitar dívidas</option>
+                        <option value="Organizar renda variável">Organizar renda variável</option>
+                        <option value="Planejar uma compra">Planejar uma compra</option>
+                      </select>
+                    </div>
+                    <div class="form-row">
+                      <label for="monthlyIncome">Renda base mensal</label>
+                      <input
+                        id="monthlyIncome"
+                        name="monthlyIncome"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0,00"
+                      />
+                    </div>
                   </div>
                 </div>
-
-                <div class="form-columns">
+                <div
+                  id="profile-appearance"
+                  data-panel="profile:appearance"
+                  role="tabpanel"
+                  aria-labelledby="tab-appearance"
+                  class="settings-group"
+                  hidden
+                >
+                  <h2>Aparência</h2>
                   <div class="form-row">
-                    <label for="personName">Nome da pessoa</label>
-                    <input id="personName" name="personName" type="text" maxlength="40" placeholder="Ex.: Edu" />
-                  </div>
-                  <div class="form-row">
-                    <label for="customAppName">Nome do app</label>
-                    <input id="customAppName" name="customAppName" type="text" maxlength="32" placeholder="Ex.: Bolsário" />
-                  </div>
-                </div>
-
-                <div class="form-columns">
-                  <div class="form-row">
-                    <label for="profileGoal">Objetivo financeiro</label>
-                    <select id="profileGoal" name="profileGoal">
-                      <option value="Controlar gastos">Controlar gastos</option>
-                      <option value="Guardar dinheiro">Guardar dinheiro</option>
-                      <option value="Quitar dívidas">Quitar dívidas</option>
-                      <option value="Organizar renda variável">Organizar renda variável</option>
-                      <option value="Planejar uma compra">Planejar uma compra</option>
+                    <label for="themeMode">Tema</label>
+                    <select id="themeMode" name="themeMode">
+                      <option value="light">Claro</option>
+                      <option value="dark">Escuro</option>
                     </select>
                   </div>
-                  <div class="form-row">
-                    <label for="monthlyIncome">Renda base mensal</label>
-                    <input id="monthlyIncome" name="monthlyIncome" type="number" min="0" step="0.01" placeholder="0,00" />
+
+                  <fieldset class="color-field">
+                    <legend>Cor principal</legend>
+                    <div class="color-options">
+                      <input id="accentTeal" name="accentColor" type="radio" value="#0f766e" />
+                      <label for="accentTeal" style="--swatch: #0f766e"><span>Verde</span></label>
+                      <input id="accentBlue" name="accentColor" type="radio" value="#2563eb" />
+                      <label for="accentBlue" style="--swatch: #2563eb"><span>Azul</span></label>
+                      <input id="accentViolet" name="accentColor" type="radio" value="#6d28d9" />
+                      <label for="accentViolet" style="--swatch: #6d28d9"
+                        ><span>Violeta</span></label
+                      >
+                      <input id="accentRose" name="accentColor" type="radio" value="#be185d" />
+                      <label for="accentRose" style="--swatch: #be185d"><span>Rosa</span></label>
+                      <input id="accentAmber" name="accentColor" type="radio" value="#b45309" />
+                      <label for="accentAmber" style="--swatch: #b45309"><span>Âmbar</span></label>
+                    </div>
+                  </fieldset>
+                </div>
+
+                <div
+                  id="profile-categories"
+                  data-panel="profile:categories"
+                  role="tabpanel"
+                  aria-labelledby="tab-categories"
+                  class="settings-group"
+                  hidden
+                >
+                  <h2>Categorias</h2>
+                  <div class="category-toolbar">
+                    <select id="categoryEditorType" aria-label="Tipo de categoria">
+                      <option value="expense">Gastos</option>
+                      <option value="income">Entradas</option>
+                    </select>
+                    <input
+                      id="newCategoryName"
+                      type="text"
+                      maxlength="40"
+                      aria-label="Nome da nova categoria"
+                      placeholder="Nova categoria"
+                    />
+                    <button
+                      id="addCategoryBtn"
+                      class="icon-button"
+                      type="button"
+                      aria-label="Adicionar categoria"
+                      title="Adicionar categoria"
+                    >
+                      <span data-icon="Plus"></span>
+                    </button>
+                  </div>
+                  <p id="categoryError" class="field-error hidden" role="alert"></p>
+                  <div id="categoryEditor" class="category-editor"></div>
+                  <div class="hidden">
+                    <div class="form-columns">
+                      <div class="form-row">
+                        <label for="expenseCategories">Categorias de gastos</label>
+                        <textarea
+                          id="expenseCategories"
+                          name="expenseCategories"
+                          rows="7"
+                        ></textarea>
+                      </div>
+                      <div class="form-row">
+                        <label for="incomeCategories">Categorias de entradas</label>
+                        <textarea id="incomeCategories" name="incomeCategories" rows="7"></textarea>
+                      </div>
+                    </div>
+
+                    <div class="form-row">
+                      <label for="categoryVisuals">Ícones e cores das categorias</label>
+                      <textarea
+                        id="categoryVisuals"
+                        name="categoryVisuals"
+                        rows="6"
+                        placeholder="Moradia | 🏠 | #0f766e"
+                      ></textarea>
+                    </div>
                   </div>
                 </div>
 
-                <div class="form-row">
-                  <label for="themeMode">Tema</label>
-                  <select id="themeMode" name="themeMode">
-                    <option value="light">Claro</option>
-                    <option value="dark">Escuro</option>
-                  </select>
-                </div>
-
-                <fieldset class="color-field">
-                  <legend>Cor principal</legend>
-                  <div class="color-options">
-                    <input id="accentTeal" name="accentColor" type="radio" value="#0f766e" />
-                    <label for="accentTeal" style="--swatch:#0f766e"><span>Verde</span></label>
-                    <input id="accentBlue" name="accentColor" type="radio" value="#2563eb" />
-                    <label for="accentBlue" style="--swatch:#2563eb"><span>Azul</span></label>
-                    <input id="accentViolet" name="accentColor" type="radio" value="#6d28d9" />
-                    <label for="accentViolet" style="--swatch:#6d28d9"><span>Violeta</span></label>
-                    <input id="accentRose" name="accentColor" type="radio" value="#be185d" />
-                    <label for="accentRose" style="--swatch:#be185d"><span>Rosa</span></label>
-                    <input id="accentAmber" name="accentColor" type="radio" value="#b45309" />
-                    <label for="accentAmber" style="--swatch:#b45309"><span>Âmbar</span></label>
+                <div
+                  id="profile-data"
+                  data-panel="profile:data"
+                  role="tabpanel"
+                  aria-labelledby="tab-data"
+                  class="settings-group"
+                  hidden
+                >
+                  <h2>Dados e backup</h2>
+                  <dl class="data-facts">
+                    <div>
+                      <dt>Armazenamento</dt>
+                      <dd>Neste navegador</dd>
+                    </div>
+                    <div>
+                      <dt>Backup</dt>
+                      <dd>JSON · versão 2</dd>
+                    </div>
+                  </dl>
+                  <div class="button-row">
+                    <button type="button" class="ghost-button" data-file-action="backupBtn">
+                      <span data-icon="DatabaseBackup"></span>Baixar backup</button
+                    ><button type="button" class="ghost-button" data-file-action="importBtn">
+                      <span data-icon="Upload"></span>Restaurar backup
+                    </button>
                   </div>
-                </fieldset>
-
-                <div class="form-columns">
-                  <div class="form-row">
-                    <label for="expenseCategories">Categorias de gastos</label>
-                    <textarea id="expenseCategories" name="expenseCategories" rows="7"></textarea>
-                  </div>
-                  <div class="form-row">
-                    <label for="incomeCategories">Categorias de entradas</label>
-                    <textarea id="incomeCategories" name="incomeCategories" rows="7"></textarea>
-                  </div>
-                </div>
-
-                <div class="form-row">
-                  <label for="categoryVisuals">Ícones e cores das categorias</label>
-                  <textarea id="categoryVisuals" name="categoryVisuals" rows="6" placeholder="Moradia | 🏠 | #0f766e"></textarea>
+                  <section class="danger-zone">
+                    <h3>Apagar dados deste navegador</h3>
+                    <p>
+                      Remove lançamentos, orçamentos, planejamento e perfil. Esta ação não pode ser
+                      desfeita.
+                    </p>
+                    <button class="ghost-button danger-button" id="resetPersonBtn" type="button">
+                      <span data-icon="Trash2"></span>Apagar todos os dados
+                    </button>
+                  </section>
                 </div>
 
                 <div class="button-row">
                   <button class="primary-button" type="submit">
                     <span class="icon" aria-hidden="true">
-                      <svg viewBox="0 0 24 24"><path d="M5 3h12l2 2v16H5V3Zm2 2v14h10V7.8L14.2 5H7Zm2 8h6v4H9v-4Zm0-6h5v2H9V7Z" /></svg>
+                      <span data-icon="Check"></span>
                     </span>
                     Salvar perfil
                   </button>
-                  <button class="ghost-button danger-button" id="resetPersonBtn" type="button">Preparar para outra pessoa</button>
+                  <span id="profileSaveStatus" class="save-status" aria-live="polite"></span>
                 </div>
               </form>
 
-              <section class="panel profile-panel" aria-labelledby="profilePreviewTitle">
+              <section class="panel profile-panel" aria-labelledby="profilePreviewTitle" hidden>
                 <div class="panel-heading">
                   <div>
                     <p class="eyebrow">Identidade</p>
@@ -663,10 +1153,16 @@
       </main>
     </div>
 
-    <section id="setupGate" class="setup-gate hidden" aria-labelledby="setupTitle">
+    <section
+      id="setupGate"
+      class="setup-gate hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="setupTitle"
+    >
       <form id="setupForm" class="setup-card" autocomplete="off">
         <p class="eyebrow">Primeiro acesso</p>
-        <h2 id="setupTitle">Configuração inicial</h2>
+        <h2 id="setupTitle">Seu Bolsário começa do zero.</h2>
         <div class="form-row">
           <label for="setupName">Nome</label>
           <input id="setupName" name="setupName" type="text" maxlength="40" />
@@ -696,9 +1192,15 @@
 
     <section id="printReport" class="print-report" aria-hidden="true"></section>
 
-    <div id="toast" class="toast" role="status" aria-live="polite"><span id="toastMessage"></span><button id="toastUndoBtn" class="toast-undo hidden" type="button"><span data-icon="Undo2"></span>Desfazer</button></div>
+    <div id="toast" class="toast" role="status" aria-live="polite">
+      <span id="toastMessage"></span
+      ><button id="toastUndoBtn" class="toast-undo hidden" type="button">
+        <span data-icon="Undo2"></span>Desfazer
+      </button>
+    </div>
 
     <script src="vendor/icons.js"></script>
+    <script src="interface.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
