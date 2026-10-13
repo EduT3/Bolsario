@@ -11,11 +11,17 @@ const BolsarioUI = (() => {
   /** @type {HTMLElement | null} */
   let dialogTrigger = null;
   let resetTransaction = () => {};
+  let transactionSnapshot = "";
+
+  function snapshotTransaction() {
+    return JSON.stringify([...new FormData(element("transactionForm", HTMLFormElement))]);
+  }
 
   function openTransaction() {
     const dialog = element("transactionDialog", HTMLDialogElement);
     if (dialog.open) return;
     dialogTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    transactionSnapshot = snapshotTransaction();
     dialog.showModal();
     element("description", HTMLInputElement).focus();
   }
@@ -30,7 +36,9 @@ const BolsarioUI = (() => {
     const dirty =
       ["description", "amount", "editingId"].some((id) =>
         element(id, HTMLInputElement).value.trim(),
-      ) || element("notes", HTMLTextAreaElement).value.trim();
+      ) ||
+      element("notes", HTMLTextAreaElement).value.trim() ||
+      snapshotTransaction() !== transactionSnapshot;
     if (dirty && !window.confirm("Descartar este lançamento não salvo?")) return;
     resetTransaction();
     closeTransaction();
@@ -375,6 +383,7 @@ const BolsarioUI = (() => {
     init,
     openTransaction,
     closeTransaction,
+    requestClose,
     syncView,
     syncFilters,
     operation,

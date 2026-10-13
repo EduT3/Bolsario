@@ -13,7 +13,8 @@ module.exports = defineConfig({
   outputDir: "test-results",
   use: {
     browserName: "chromium",
-    channel: process.env.BOLSARIO_BROWSER_CHANNEL || "msedge",
+    channel:
+      process.env.BOLSARIO_BROWSER_CHANNEL || (process.platform === "win32" ? "msedge" : undefined),
     headless: true,
     locale: "pt-BR",
     reducedMotion: "reduce",

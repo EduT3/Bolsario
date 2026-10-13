@@ -43,6 +43,8 @@ Principais telas:
 6. Em **Planejamento**, organize recorrências, parcelas e metas.
 7. Abra **Arquivos** para baixar backup, exportar CSV, gerar o relatório PDF ou importar um backup. No histórico, **CSV filtrado** exporta o resultado da busca.
 
+Fechar um lançamento por Escape, pelo botão de fechar ou por Cancelar edição pede confirmação quando houver um rascunho. Mudanças somente na data, conta, categoria ou tipo também são protegidas.
+
 Ao duplicar um lançamento, o formulário abre para revisão antes de salvar. A cópia é manual, mesmo quando a origem é uma recorrência ou parcela. Após excluir um lançamento, **Desfazer** fica disponível por até 12 segundos, ou até outra ação mostrar uma nova mensagem.
 
 ## Backup e Privacidade
@@ -90,7 +92,7 @@ O app distribuído abre diretamente pelo `index.html`, sem framework ou instala�
 
 ## Verificação
 
-O app continua abrindo diretamente pelo `index.html`. Para desenvolver e validar, use Node.js 24 e Microsoft Edge:
+O app continua abrindo diretamente pelo `index.html`. Para desenvolver e validar, use Node.js 24. No Windows, os testes usam Microsoft Edge; em Linux/macOS, usam o Chromium do Playwright (`npx playwright install chromium`). `BOLSARIO_BROWSER_CHANNEL` permite escolher outro canal instalado:
 
 ```powershell
 npm.cmd ci
@@ -128,3 +130,7 @@ Os resultados da reformulação, as correções da segunda rodada visual e os li
 Projeto em evolução para uso pessoal e compartilhamento com outras pessoas.
 
 As melhorias locais e os resultados de validação estão em [Registro de melhorias](docs/MELHORIAS-2026-09.md). A versão do site depende da publicação do repositório.
+
+## Revisão de manutenção
+
+[Correções, testes executados e limites da revisão de 13/10/2026](docs/REVIEW-2026-10-13.md).
