@@ -2779,10 +2779,7 @@ function bindEvents() {
     renderTransactions();
   });
   elements.transactionForm.addEventListener("submit", handleTransactionSubmit);
-  elements.cancelEditBtn.addEventListener("click", () => {
-    resetForm();
-    BolsarioUI.closeTransaction();
-  });
+  elements.cancelEditBtn.addEventListener("click", BolsarioUI.requestClose);
   elements.transactionRows.addEventListener("click", handleTableClick);
   document.querySelector("#recentTransactions").addEventListener("click", handleTableClick);
   elements.budgetForm.addEventListener("submit", handleBudgetSubmit);

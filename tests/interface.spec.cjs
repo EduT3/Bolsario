@@ -538,3 +538,38 @@ test("campos inválidos em outra subaba, rótulos longos e tela baixa", async ({
   });
   expect(duplicates).toEqual([]);
 });
+
+test("rascunho protege alterações isoladas e cancelar edição", async ({ page }) => {
+  await page.locator("#quickAddBtn").click();
+  await page.locator("#account").selectOption("Pix");
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#transactionDialog")).toBeVisible();
+  await expect(page.locator("#account")).toHaveValue("Pix");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.locator("#closeTransactionBtn").click();
+  await expect(page.locator("#transactionDialog")).not.toBeVisible();
+  await expect(page.locator("#quickAddBtn")).toBeFocused();
+
+  await page.locator("#quickAddBtn").click();
+  const currentDate = await page.locator("#date").inputValue();
+  await page.locator("#date").fill(currentDate === "2026-10-14" ? "2026-10-15" : "2026-10-14");
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await page.locator("#closeTransactionBtn").click();
+  await expect(page.locator("#transactionDialog")).toBeVisible();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.keyboard.press("Escape");
+
+  await populate(page);
+  await navigate(page, "lancamentos");
+  await page.locator('#transactionRows [data-action="edit"]').first().click();
+  const before = (await saved(page)).transactions;
+  await page.locator("#description").fill("Edição ainda não salva");
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await page.locator("#cancelEditBtn").click();
+  await expect(page.locator("#description")).toHaveValue("Edição ainda não salva");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.locator("#cancelEditBtn").click();
+  await expect(page.locator("#transactionDialog")).not.toBeVisible();
+  expect((await saved(page)).transactions).toEqual(before);
+});
